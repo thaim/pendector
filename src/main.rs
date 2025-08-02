@@ -8,7 +8,7 @@ fn main() {
 
     let scanner = RepoScanner::new();
     let mut all_repositories = Vec::new();
-    
+
     for path in &args.paths {
         match scanner.scan_with_depth(path, args.max_depth) {
             Ok(mut repositories) => {
@@ -22,7 +22,10 @@ fn main() {
     }
 
     let filtered_repos: Vec<_> = if args.changes_only {
-        all_repositories.into_iter().filter(|r| r.has_changes).collect()
+        all_repositories
+            .into_iter()
+            .filter(|r| r.has_changes)
+            .collect()
     } else {
         all_repositories
     };

@@ -53,12 +53,12 @@ fn max_depth_flag_works() {
 fn multiple_paths_work() {
     let temp_dir1 = TempDir::new().unwrap();
     let temp_dir2 = TempDir::new().unwrap();
-    
+
     // Create mock git repositories in both directories
     let repo1_path = temp_dir1.path().join("repo1");
     fs::create_dir_all(&repo1_path).unwrap();
     fs::create_dir_all(repo1_path.join(".git")).unwrap();
-    
+
     let repo2_path = temp_dir2.path().join("repo2");
     fs::create_dir_all(&repo2_path).unwrap();
     fs::create_dir_all(repo2_path.join(".git")).unwrap();

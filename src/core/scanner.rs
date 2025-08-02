@@ -105,7 +105,6 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let base_path = temp_dir.path();
 
-
         // Create nested git repositories
         let shallow_repo = base_path.join("shallow_repo");
         fs::create_dir_all(&shallow_repo).unwrap();
