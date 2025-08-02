@@ -1,0 +1,187 @@
+use crate::core::Repository;
+use colored::*;
+
+pub struct OutputFormatter {
+    pub verbose: bool,
+}
+
+impl OutputFormatter {
+    pub fn new(verbose: bool) -> Self {
+        Self { verbose }
+    }
+
+    pub fn format_repositories(&self, repositories: &[Repository]) -> String {
+        if repositories.is_empty() {
+            return "No repositories found.".to_string();
+        }
+
+        let mut output = String::new();
+
+        for repo in repositories {
+            output.push_str(&self.format_repository(repo));
+            output.push('\n');
+        }
+
+        output
+    }
+
+    fn format_repository(&self, repo: &Repository) -> String {
+        let name = if repo.has_changes {
+            repo.name.red().to_string()
+        } else {
+            repo.name.green().to_string()
+        };
+
+        if self.verbose {
+            let branch = repo.current_branch.as_deref().unwrap_or("unknown");
+            let files_count = repo.changed_files.len();
+            format!("{} [{}] ({} changed files)", name, branch, files_count)
+        } else {
+            name
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn create_test_repository(
+        name: &str,
+        has_changes: bool,
+        branch: Option<&str>,
+        file_count: usize,
+    ) -> Repository {
+        let files = if file_count > 0 {
+            (0..file_count).map(|i| format!("file{}.txt", i)).collect()
+        } else {
+            Vec::new()
+        };
+
+        Repository::new(PathBuf::from(format!("/test/{}", name))).with_git_info(
+            has_changes,
+            branch.map(|s| s.to_string()),
+            files,
+        )
+    }
+
+    #[test]
+    fn test_format_repositories_empty() {
+        let formatter = OutputFormatter::new(false);
+        let repositories = Vec::new();
+
+        let result = formatter.format_repositories(&repositories);
+        assert_eq!(result, "No repositories found.");
+    }
+
+    #[test]
+    fn test_format_repositories_single_clean() {
+        let formatter = OutputFormatter::new(false);
+        let repositories = vec![create_test_repository("clean_repo", false, Some("main"), 0)];
+
+        let result = formatter.format_repositories(&repositories);
+        // Should contain the repo name, but we can't easily test colors in unit tests
+        assert!(result.contains("clean_repo"));
+        assert!(result.ends_with('\n'));
+    }
+
+    #[test]
+    fn test_format_repositories_single_with_changes() {
+        let formatter = OutputFormatter::new(false);
+        let repositories = vec![create_test_repository(
+            "dirty_repo",
+            true,
+            Some("develop"),
+            3,
+        )];
+
+        let result = formatter.format_repositories(&repositories);
+        assert!(result.contains("dirty_repo"));
+        assert!(result.ends_with('\n'));
+    }
+
+    #[test]
+    fn test_format_repositories_multiple() {
+        let formatter = OutputFormatter::new(false);
+        let repositories = vec![
+            create_test_repository("repo1", false, Some("main"), 0),
+            create_test_repository("repo2", true, Some("feature"), 2),
+            create_test_repository("repo3", false, None, 0),
+        ];
+
+        let result = formatter.format_repositories(&repositories);
+        assert!(result.contains("repo1"));
+        assert!(result.contains("repo2"));
+        assert!(result.contains("repo3"));
+
+        // Should have 3 lines (one per repo)
+        assert_eq!(result.lines().count(), 3);
+    }
+
+    #[test]
+    fn test_format_repositories_verbose_mode() {
+        let formatter = OutputFormatter::new(true);
+        let repositories = vec![
+            create_test_repository("repo1", false, Some("main"), 0),
+            create_test_repository("repo2", true, Some("feature/test"), 5),
+            create_test_repository("repo3", true, None, 2),
+        ];
+
+        let result = formatter.format_repositories(&repositories);
+
+        // Should contain branch information
+        assert!(result.contains("[main]"));
+        assert!(result.contains("[feature/test]"));
+        assert!(result.contains("[unknown]")); // For repo3 with no branch
+
+        // Should contain file count information
+        assert!(result.contains("(0 changed files)"));
+        assert!(result.contains("(5 changed files)"));
+        assert!(result.contains("(2 changed files)"));
+    }
+
+    #[test]
+    fn test_format_repository_simple_mode() {
+        let formatter = OutputFormatter::new(false);
+        let repo = create_test_repository("test_repo", true, Some("main"), 3);
+
+        let result = formatter.format_repository(&repo);
+        // In simple mode, should only contain the name (with color formatting)
+        assert!(result.contains("test_repo"));
+        // Should not contain branch or file count info
+        assert!(!result.contains("[main]"));
+        assert!(!result.contains("changed files"));
+    }
+
+    #[test]
+    fn test_format_repository_verbose_mode() {
+        let formatter = OutputFormatter::new(true);
+        let repo = create_test_repository("test_repo", true, Some("develop"), 7);
+
+        let result = formatter.format_repository(&repo);
+        assert!(result.contains("test_repo"));
+        assert!(result.contains("[develop]"));
+        assert!(result.contains("(7 changed files)"));
+    }
+
+    #[test]
+    fn test_format_repository_verbose_no_branch() {
+        let formatter = OutputFormatter::new(true);
+        let repo = create_test_repository("test_repo", false, None, 0);
+
+        let result = formatter.format_repository(&repo);
+        assert!(result.contains("test_repo"));
+        assert!(result.contains("[unknown]"));
+        assert!(result.contains("(0 changed files)"));
+    }
+
+    #[test]
+    fn test_formatter_verbose_flag() {
+        let verbose_formatter = OutputFormatter::new(true);
+        let simple_formatter = OutputFormatter::new(false);
+
+        assert!(verbose_formatter.verbose);
+        assert!(!simple_formatter.verbose);
+    }
+}
