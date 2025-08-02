@@ -44,4 +44,3 @@ fn changes_only_flag_works() {
     cmd.arg("--changes-only").assert().success();
 }
 
-use predicates::prelude::*;

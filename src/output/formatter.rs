@@ -139,8 +139,8 @@ mod tests {
         assert!(result.contains("repo2"));
         assert!(result.contains("repo3"));
 
-        // Should have 3 lines (one per repo)
-        assert_eq!(result.lines().count(), 3);
+        // Should have 5 lines: header (2 lines) + 3 repo lines
+        assert_eq!(result.lines().count(), 5);
     }
 
     #[test]
@@ -166,16 +166,15 @@ mod tests {
     }
 
     #[test]
-    fn test_format_repository_simple_mode() {
+    fn test_format_repository_default_mode() {
         let formatter = OutputFormatter::new(false);
         let repo = create_test_repository("test_repo", true, Some("main"), 3);
 
         let result = formatter.format_repository(&repo);
-        // In simple mode, should only contain the name (with color formatting)
+        // Now default mode shows all essential information
         assert!(result.contains("test_repo"));
-        // Should not contain branch or file count info
-        assert!(!result.contains("[main]"));
-        assert!(!result.contains("changed files"));
+        assert!(result.contains("[main]"));
+        assert!(result.contains("changed files"));
     }
 
     #[test]
