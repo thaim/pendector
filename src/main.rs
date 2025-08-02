@@ -15,7 +15,7 @@ fn main() {
                 all_repositories.append(&mut repositories);
             }
             Err(e) => {
-                eprintln!("Error scanning path '{}': {e}", path);
+                eprintln!("Error scanning path '{path}': {e}");
                 std::process::exit(1);
             }
         }
