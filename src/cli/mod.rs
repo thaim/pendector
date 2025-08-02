@@ -14,4 +14,8 @@ pub struct Args {
     /// Enable verbose output
     #[arg(short, long)]
     pub verbose: bool,
+
+    /// Maximum depth for recursive directory search
+    #[arg(short = 'd', long, default_value = "3")]
+    pub max_depth: usize,
 }

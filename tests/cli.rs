@@ -42,3 +42,9 @@ fn changes_only_flag_works() {
     let mut cmd = Command::cargo_bin("pendector").unwrap();
     cmd.arg("--changes-only").assert().success();
 }
+
+#[test]
+fn max_depth_flag_works() {
+    let mut cmd = Command::cargo_bin("pendector").unwrap();
+    cmd.arg("--max-depth").arg("3").assert().success();
+}

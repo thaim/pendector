@@ -7,7 +7,7 @@ fn main() {
     let args = Args::parse();
 
     let scanner = RepoScanner::new();
-    match scanner.scan(&args.path) {
+    match scanner.scan_with_depth(&args.path, args.max_depth) {
         Ok(repositories) => {
             let filtered_repos: Vec<_> = if args.changes_only {
                 repositories.into_iter().filter(|r| r.has_changes).collect()
