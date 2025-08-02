@@ -57,3 +57,12 @@ cargo clippy
 ## Testing Strategy
 
 Integration tests are located in `tests/` directory and use `assert_cmd::Command` to test the binary directly. Tests verify both success and failure cases.
+
+## Code Quality Rules
+
+ALWAYS run the following after making code changes:
+1. `cargo fmt` - Auto-format code
+2. `cargo test` - Run all tests
+3. `cargo clippy` - Run linter (if available)
+
+These commands must be executed before considering any task complete.
