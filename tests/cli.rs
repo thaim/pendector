@@ -43,4 +43,3 @@ fn changes_only_flag_works() {
     let mut cmd = Command::cargo_bin("pendector").unwrap();
     cmd.arg("--changes-only").assert().success();
 }
-

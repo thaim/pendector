@@ -16,11 +16,11 @@ impl OutputFormatter {
         }
 
         let mut output = String::new();
-        
+
         // Add header with summary
         let total_count = repositories.len();
         let changed_count = repositories.iter().filter(|r| r.has_changes).count();
-        
+
         output.push_str(&format!("Found {} repositories", total_count));
         if changed_count > 0 {
             output.push_str(&format!(" ({} with changes)", changed_count));
@@ -44,14 +44,19 @@ impl OutputFormatter {
 
         let branch = repo.current_branch.as_deref().unwrap_or("unknown");
         let files_count = repo.changed_files.len();
-        let path = repo.path.canonicalize()
+        let path = repo
+            .path
+            .canonicalize()
             .map(|p| p.display().to_string())
             .unwrap_or_else(|_| repo.path.display().to_string());
-        
+
         if self.verbose {
             // Verbose mode shows additional details like specific changed files
-            let mut result = format!("{} [{}] ({} changed files)\n  Path: {}", name, branch, files_count, path);
-            
+            let mut result = format!(
+                "{} [{}] ({} changed files)\n  Path: {}",
+                name, branch, files_count, path
+            );
+
             if !repo.changed_files.is_empty() {
                 result.push_str("\n  Changed files:");
                 for file in &repo.changed_files {
@@ -61,7 +66,10 @@ impl OutputFormatter {
             result
         } else {
             // Default mode shows essential information
-            format!("{} [{}] ({} changed files) - {}", name, branch, files_count, path)
+            format!(
+                "{} [{}] ({} changed files) - {}",
+                name, branch, files_count, path
+            )
         }
     }
 }
