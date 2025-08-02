@@ -23,10 +23,20 @@ impl RepoScanner {
         &self,
         base_path: P,
     ) -> Result<Vec<Repository>, Box<dyn std::error::Error>> {
+        self.scan_with_depth(base_path, 10)
+    }
+
+    /// 指定の深さまでリポジトリを再帰的に探索する
+    pub fn scan_with_depth<P: AsRef<Path>>(
+        &self,
+        base_path: P,
+        max_depth: usize,
+    ) -> Result<Vec<Repository>, Box<dyn std::error::Error>> {
         let mut repositories = Vec::new();
 
         for entry in WalkDir::new(base_path)
             .follow_links(false)
+            .max_depth(max_depth)
             .into_iter()
             .filter_map(|e| e.ok())
         {
@@ -88,5 +98,35 @@ mod tests {
         let repositories = scanner.scan(base_path).unwrap();
 
         assert_eq!(repositories.len(), 0);
+    }
+
+    #[test]
+    fn test_scan_with_depth_limit() {
+        let temp_dir = TempDir::new().unwrap();
+        let base_path = temp_dir.path();
+
+        // Create nested git repositories
+        let shallow_repo = base_path.join("shallow_repo");
+        fs::create_dir_all(&shallow_repo).unwrap();
+        fs::create_dir_all(shallow_repo.join(".git")).unwrap();
+
+        let deep_repo = base_path.join("level1").join("level2").join("deep_repo");
+        fs::create_dir_all(&deep_repo).unwrap();
+        fs::create_dir_all(deep_repo.join(".git")).unwrap();
+
+        let scanner = RepoScanner::new();
+
+        // Test with depth 0 - should find no repos (only base directory itself)
+        let repositories = scanner.scan_with_depth(base_path, 0).unwrap();
+        assert_eq!(repositories.len(), 0);
+
+        // Test with depth 2 - should find shallow repo only
+        let repositories = scanner.scan_with_depth(base_path, 2).unwrap();
+        assert_eq!(repositories.len(), 1);
+        assert_eq!(repositories[0].name, "shallow_repo");
+
+        // Test with depth 4 - should find shallow and deep repos
+        let repositories = scanner.scan_with_depth(base_path, 4).unwrap();
+        assert_eq!(repositories.len(), 2);
     }
 }

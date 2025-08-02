@@ -3,9 +3,9 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Args {
-    /// Base directory to scan for repositories
-    #[arg(short, long, default_value = ".")]
-    pub path: String,
+    /// Base directories to scan for repositories
+    #[arg(default_values = &["."])]
+    pub paths: Vec<String>,
 
     /// Show only repositories with changes
     #[arg(short = 'c', long)]
@@ -14,4 +14,8 @@ pub struct Args {
     /// Enable verbose output
     #[arg(short, long)]
     pub verbose: bool,
+
+    /// Maximum depth for recursive directory search
+    #[arg(short = 'd', long, default_value = "3")]
+    pub max_depth: usize,
 }
