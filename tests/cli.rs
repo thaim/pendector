@@ -25,8 +25,7 @@ fn scans_specific_directory() {
     fs::create_dir_all(repo_path.join(".git")).unwrap();
 
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.arg("--path")
-        .arg(base_path.to_str().unwrap())
+    cmd.arg(base_path.to_str().unwrap())
         .assert()
         .success()
         .stdout(predicates::str::contains("test_repo"));

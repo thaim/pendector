@@ -4,7 +4,7 @@ use clap::Parser;
 #[command(version, about, long_about = None)]
 pub struct Args {
     /// Base directory to scan for repositories
-    #[arg(short, long, default_value = ".")]
+    #[arg(default_value = ".")]
     pub path: String,
 
     /// Show only repositories with changes
