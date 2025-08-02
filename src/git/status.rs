@@ -97,6 +97,13 @@ mod tests {
             .output()
             .unwrap();
 
+        // Set default branch name to 'main' for consistency across environments
+        Command::new("git")
+            .args(["config", "init.defaultBranch", "main"])
+            .current_dir(&repo_path)
+            .output()
+            .unwrap();
+
         repo_path
     }
 
@@ -135,6 +142,13 @@ mod tests {
             .output()
             .unwrap();
 
+        // Rename branch to 'main' if it's not already 'main'
+        Command::new("git")
+            .args(["branch", "-M", "main"])
+            .current_dir(&repo_path)
+            .output()
+            .unwrap();
+
         let result = GitStatus::get_repository_status(&repo_path);
         assert!(result.is_ok());
 
@@ -161,6 +175,13 @@ mod tests {
 
         Command::new("git")
             .args(["commit", "-m", "Initial commit"])
+            .current_dir(&repo_path)
+            .output()
+            .unwrap();
+
+        // Rename branch to 'main' if it's not already 'main'
+        Command::new("git")
+            .args(["branch", "-M", "main"])
             .current_dir(&repo_path)
             .output()
             .unwrap();
