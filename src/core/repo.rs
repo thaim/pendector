@@ -166,7 +166,7 @@ mod tests {
             vec!["test.rs".to_string()],
         );
 
-        let debug_str = format!("{:?}", repo);
+        let debug_str = format!("{repo:?}");
         assert!(debug_str.contains("Repository"));
         assert!(debug_str.contains("/test/repo"));
         assert!(debug_str.contains("repo"));

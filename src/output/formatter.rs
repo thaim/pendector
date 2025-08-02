@@ -21,9 +21,9 @@ impl OutputFormatter {
         let total_count = repositories.len();
         let changed_count = repositories.iter().filter(|r| r.has_changes).count();
 
-        output.push_str(&format!("Found {} repositories", total_count));
+        output.push_str(&format!("Found {total_count} repositories"));
         if changed_count > 0 {
-            output.push_str(&format!(" ({} with changes)", changed_count));
+            output.push_str(&format!(" ({changed_count} with changes)"));
         }
         output.push_str(":\n\n");
 
@@ -52,24 +52,19 @@ impl OutputFormatter {
 
         if self.verbose {
             // Verbose mode shows additional details like specific changed files
-            let mut result = format!(
-                "{} [{}] ({} changed files)\n  Path: {}",
-                name, branch, files_count, path
-            );
+            let mut result =
+                format!("{name} [{branch}] ({files_count} changed files)\n  Path: {path}");
 
             if !repo.changed_files.is_empty() {
                 result.push_str("\n  Changed files:");
                 for file in &repo.changed_files {
-                    result.push_str(&format!("\n    {}", file));
+                    result.push_str(&format!("\n    {file}"));
                 }
             }
             result
         } else {
             // Default mode shows essential information
-            format!(
-                "{} [{}] ({} changed files) - {}",
-                name, branch, files_count, path
-            )
+            format!("{name} [{branch}] ({files_count} changed files) - {path}")
         }
     }
 }
@@ -86,12 +81,12 @@ mod tests {
         file_count: usize,
     ) -> Repository {
         let files = if file_count > 0 {
-            (0..file_count).map(|i| format!("file{}.txt", i)).collect()
+            (0..file_count).map(|i| format!("file{i}.txt")).collect()
         } else {
             Vec::new()
         };
 
-        Repository::new(PathBuf::from(format!("/test/{}", name))).with_git_info(
+        Repository::new(PathBuf::from(format!("/test/{name}"))).with_git_info(
             has_changes,
             branch.map(|s| s.to_string()),
             files,

@@ -19,7 +19,7 @@ fn main() {
             println!("{}", formatter.format_repositories(&filtered_repos));
         }
         Err(e) => {
-            eprintln!("Error scanning repositories: {}", e);
+            eprintln!("Error scanning repositories: {e}");
             std::process::exit(1);
         }
     }

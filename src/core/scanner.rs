@@ -9,7 +9,15 @@ impl RepoScanner {
     pub fn new() -> Self {
         Self
     }
+}
 
+impl Default for RepoScanner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RepoScanner {
     /// 指定のパス以下でリポジトリを再帰的に探索する
     pub fn scan<P: AsRef<Path>>(
         &self,
@@ -27,10 +35,12 @@ impl RepoScanner {
                     let mut repository = Repository::new(repo_path.to_path_buf());
 
                     // Get git status information
-                    if let Ok((has_changes, branch, files)) =
-                        GitStatus::get_repository_status(repo_path)
-                    {
-                        repository = repository.with_git_info(has_changes, branch, files);
+                    if let Ok(status) = GitStatus::get_repository_status(repo_path) {
+                        repository = repository.with_git_info(
+                            status.has_changes,
+                            status.current_branch,
+                            status.changed_files,
+                        );
                     }
 
                     repositories.push(repository);

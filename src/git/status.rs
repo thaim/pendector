@@ -1,13 +1,20 @@
 use git2::{Repository as Git2Repository, StatusOptions};
 use std::path::Path;
 
+#[derive(Debug, Clone)]
+pub struct RepoStatus {
+    pub has_changes: bool,
+    pub current_branch: Option<String>,
+    pub changed_files: Vec<String>,
+}
+
 pub struct GitStatus;
 
 impl GitStatus {
     /// git2ライブラリを使用してリポジトリの状態を取得
     pub fn get_repository_status<P: AsRef<Path>>(
         repo_path: P,
-    ) -> Result<(bool, Option<String>, Vec<String>), Box<dyn std::error::Error>> {
+    ) -> Result<RepoStatus, Box<dyn std::error::Error>> {
         let repo_path = repo_path.as_ref();
 
         // git2でリポジトリを開く
@@ -15,11 +22,7 @@ impl GitStatus {
 
         // 現在のブランチ名を取得
         let current_branch = if let Ok(head) = repo.head() {
-            if let Some(name) = head.shorthand() {
-                Some(name.to_string())
-            } else {
-                None
-            }
+            head.shorthand().map(|name| name.to_string())
         } else {
             None
         };
@@ -50,12 +53,16 @@ impl GitStatus {
                     } else {
                         "   "
                     };
-                    format!("{}{}", prefix, path)
+                    format!("{prefix}{path}")
                 })
             })
             .collect();
 
-        Ok((has_changes, current_branch, changed_files))
+        Ok(RepoStatus {
+            has_changes,
+            current_branch,
+            changed_files,
+        })
     }
 }
 
@@ -101,10 +108,10 @@ mod tests {
         let result = GitStatus::get_repository_status(&repo_path);
         assert!(result.is_ok());
 
-        let (has_changes, branch, files) = result.unwrap();
-        assert!(!has_changes);
-        assert!(branch.is_none()); // No commits yet, so no branch
-        assert!(files.is_empty());
+        let status = result.unwrap();
+        assert!(!status.has_changes);
+        assert!(status.current_branch.is_none()); // No commits yet, so no branch
+        assert!(status.changed_files.is_empty());
     }
 
     #[test]
@@ -131,10 +138,10 @@ mod tests {
         let result = GitStatus::get_repository_status(&repo_path);
         assert!(result.is_ok());
 
-        let (has_changes, branch, files) = result.unwrap();
-        assert!(!has_changes); // No uncommitted changes
-        assert_eq!(branch, Some("main".to_string()));
-        assert!(files.is_empty());
+        let status = result.unwrap();
+        assert!(!status.has_changes); // No uncommitted changes
+        assert_eq!(status.current_branch, Some("main".to_string()));
+        assert!(status.changed_files.is_empty());
     }
 
     #[test]
@@ -168,14 +175,17 @@ mod tests {
         let result = GitStatus::get_repository_status(&repo_path);
         assert!(result.is_ok());
 
-        let (has_changes, branch, files) = result.unwrap();
-        assert!(has_changes);
-        assert_eq!(branch, Some("main".to_string()));
-        assert_eq!(files.len(), 2);
+        let status = result.unwrap();
+        assert!(status.has_changes);
+        assert_eq!(status.current_branch, Some("main".to_string()));
+        assert_eq!(status.changed_files.len(), 2);
 
         // Check that we have both modified and new files
-        let has_modified = files.iter().any(|f| f.contains("README.md"));
-        let has_new = files.iter().any(|f| f.contains("new_file.txt"));
+        let has_modified = status.changed_files.iter().any(|f| f.contains("README.md"));
+        let has_new = status
+            .changed_files
+            .iter()
+            .any(|f| f.contains("new_file.txt"));
         assert!(has_modified);
         assert!(has_new);
     }
