@@ -19,6 +19,7 @@ indicatif = "0.17"
 toml = "0.8"
 dirs = "5.0"
 shellexpand = "3.1"
+ignore = "0.4"
 
 [dev-dependencies]
 assert_cmd = "2.0"

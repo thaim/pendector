@@ -41,4 +41,12 @@ pub struct Args {
     /// Ignore configuration file
     #[arg(long)]
     pub no_config: bool,
+
+    /// Exclude patterns (can be specified multiple times)
+    #[arg(long)]
+    pub exclude: Vec<String>,
+
+    /// Ignore exclude patterns from configuration file
+    #[arg(long)]
+    pub no_exclude: bool,
 }

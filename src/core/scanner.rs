@@ -1,5 +1,6 @@
 use crate::core::Repository;
 use crate::error::PendectorResult;
+use crate::exclude::ExcludeFilter;
 use crate::git::GitStatus;
 use rayon::prelude::*;
 use std::path::{Path, PathBuf};
@@ -95,18 +96,43 @@ impl RepoScanner {
         Ok(repositories)
     }
 
-    /// タイムアウト設定付きで指定の深さとfetchオプションでリポジトリを再帰的に探索する
-    pub fn scan_with_options_and_timeout<P: AsRef<Path>>(
+    /// 除外パターン付きでリポジトリを再帰的に探索する
+    pub fn scan_with_exclude<P: AsRef<Path>>(
         &self,
         base_path: P,
         max_depth: usize,
         should_fetch: bool,
         fetch_timeout_secs: u64,
+        exclude_patterns: &[String],
+    ) -> PendectorResult<Vec<Repository>> {
+        let exclude_filter = ExcludeFilter::from_patterns(exclude_patterns).map_err(|e| {
+            crate::error::PendectorError::ConfigError {
+                path: std::path::PathBuf::new(),
+                message: format!("Invalid exclude pattern: {e}"),
+            }
+        })?;
+
+        self.scan_with_exclude_filter(
+            base_path,
+            max_depth,
+            should_fetch,
+            fetch_timeout_secs,
+            &exclude_filter,
+        )
+    }
+
+    /// ExcludeFilterを使ってリポジトリを再帰的に探索する
+    fn scan_with_exclude_filter<P: AsRef<Path>>(
+        &self,
+        base_path: P,
+        max_depth: usize,
+        should_fetch: bool,
+        fetch_timeout_secs: u64,
+        exclude_filter: &ExcludeFilter,
     ) -> PendectorResult<Vec<Repository>> {
         let base_path = base_path.as_ref();
-        let _base_path_str = base_path.to_string_lossy().to_string();
 
-        // まずすべてのリポジトリパスを収集
+        // まずすべてのリポジトリパスを収集（除外パターン適用）
         let repo_paths: Vec<PathBuf> = WalkDir::new(base_path)
             .follow_links(false)
             .max_depth(max_depth)
@@ -117,6 +143,11 @@ impl RepoScanner {
                     eprintln!("Warning: Failed to access path during scan: {err}");
                     None
                 }
+            })
+            .filter(|entry| {
+                // 除外パターンチェック
+                let relative_path = entry.path().strip_prefix(base_path).unwrap_or(entry.path());
+                !exclude_filter.is_excluded(relative_path)
             })
             .filter(|entry| entry.file_type().is_dir() && entry.file_name() == ".git")
             .filter_map(|entry| entry.path().parent().map(|p| p.to_path_buf()))
@@ -159,6 +190,18 @@ impl RepoScanner {
             .collect();
 
         Ok(repositories)
+    }
+
+    /// タイムアウト設定付きで指定の深さとfetchオプションでリポジトリを再帰的に探索する
+    pub fn scan_with_options_and_timeout<P: AsRef<Path>>(
+        &self,
+        base_path: P,
+        max_depth: usize,
+        should_fetch: bool,
+        fetch_timeout_secs: u64,
+    ) -> PendectorResult<Vec<Repository>> {
+        // 除外パターンなしで実行
+        self.scan_with_exclude(base_path, max_depth, should_fetch, fetch_timeout_secs, &[])
     }
 }
 

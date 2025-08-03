@@ -68,6 +68,7 @@ fn main() {
                 format: config.defaults.format.clone(),
                 verbose: config.defaults.verbose,
                 changes_only: config.defaults.changes_only,
+                exclude_patterns: config.defaults.exclude_patterns.clone(),
             }
         };
 
@@ -86,11 +87,23 @@ fn main() {
             path_config.fetch_timeout
         };
 
-        match scanner.scan_with_options_and_timeout(
+        // 除外パターンの決定：CLI引数 > パス固有設定 > デフォルト設定
+        let exclude_patterns = if args.no_exclude {
+            // --no-excludeフラグがある場合は設定ファイルの除外パターンを無視
+            args.exclude.clone()
+        } else {
+            // 設定ファイルのパターンとCLI引数をマージ
+            let mut merged_patterns = path_config.exclude_patterns.clone();
+            merged_patterns.extend(args.exclude.iter().cloned());
+            merged_patterns
+        };
+
+        match scanner.scan_with_exclude(
             expanded_path.as_ref(),
             max_depth,
             fetch,
             fetch_timeout,
+            &exclude_patterns,
         ) {
             Ok(mut repositories) => {
                 all_repositories.append(&mut repositories);
