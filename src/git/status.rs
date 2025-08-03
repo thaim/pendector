@@ -2,6 +2,7 @@ use git2::{Repository as Git2Repository, StatusOptions};
 use rayon::prelude::*;
 use std::path::Path;
 use std::process::Command;
+use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct RepoStatus {
@@ -157,18 +158,30 @@ impl GitStatus {
             .collect()
     }
 
-    /// git fetchを実行してリモートの最新状態を取得
+    /// git fetchを実行してリモートの最新状態を取得（タイムアウト付き）
     fn perform_fetch<P: AsRef<Path>>(repo_path: P) -> Result<(), Box<dyn std::error::Error>> {
+        Self::perform_fetch_with_timeout(repo_path, Duration::from_secs(5))
+    }
+
+    /// タイムアウト時間を指定してgit fetchを実行
+    fn perform_fetch_with_timeout<P: AsRef<Path>>(
+        repo_path: P,
+        timeout: Duration,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let repo_path = repo_path.as_ref();
 
-        // git fetch コマンドを実行（非対話的モード）
-        let output = Command::new("git")
+        // タイムアウト付きでgit fetch コマンドを実行
+        let child = Command::new("timeout")
+            .arg(format!("{}s", timeout.as_secs()))
+            .arg("git")
             .args(["fetch", "--all", "--quiet"])
             .env("GIT_TERMINAL_PROMPT", "0") // ターミナルプロンプトを無効化
             .env("GIT_ASKPASS", "true") // 認証プロンプトを無効化（常にfalseを返す）
             .env("SSH_ASKPASS", "true") // SSH認証プロンプトも無効化
             .current_dir(repo_path)
-            .output()?;
+            .spawn()?;
+
+        let output = child.wait_with_output()?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -177,8 +190,15 @@ impl GitStatus {
                 .map(|n| n.to_string_lossy())
                 .unwrap_or_else(|| "unknown".into());
 
+            // タイムアウトの場合の特別処理
+            if output.status.code() == Some(124) {
+                eprintln!(
+                    "Warning: {repo_name}: Fetch timed out after {}s (skipping)",
+                    timeout.as_secs()
+                );
+            }
             // ネットワークエラーや認証エラーは警告として扱い、処理を継続
-            if stderr.contains("Repository not found") {
+            else if stderr.contains("Repository not found") {
                 eprintln!("Warning: {repo_name}: Remote repository not found (skipping fetch)");
             } else if stderr.contains("Could not read from remote")
                 || stderr.contains("Authentication failed")
