@@ -12,7 +12,7 @@ fn runs_with_help() {
 #[test]
 fn scans_current_directory() {
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.assert().success();
+    cmd.arg("--no-config").assert().success();
 }
 
 #[test]
@@ -26,7 +26,8 @@ fn scans_specific_directory() {
     fs::create_dir_all(repo_path.join(".git")).unwrap();
 
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.arg(base_path.to_str().unwrap())
+    cmd.arg("--no-config")
+        .arg(base_path.to_str().unwrap())
         .assert()
         .success()
         .stdout(predicates::str::contains("test_repo"));
@@ -35,19 +36,26 @@ fn scans_specific_directory() {
 #[test]
 fn verbose_flag_works() {
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.arg("--verbose").assert().success();
+    cmd.arg("--no-config").arg("--verbose").assert().success();
 }
 
 #[test]
 fn changes_only_flag_works() {
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.arg("--changes-only").assert().success();
+    cmd.arg("--no-config")
+        .arg("--changes-only")
+        .assert()
+        .success();
 }
 
 #[test]
 fn max_depth_flag_works() {
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.arg("--max-depth").arg("3").assert().success();
+    cmd.arg("--no-config")
+        .arg("--max-depth")
+        .arg("3")
+        .assert()
+        .success();
 }
 
 #[test]
@@ -65,7 +73,8 @@ fn multiple_paths_work() {
     fs::create_dir_all(repo2_path.join(".git")).unwrap();
 
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.arg(temp_dir1.path().to_str().unwrap())
+    cmd.arg("--no-config")
+        .arg(temp_dir1.path().to_str().unwrap())
         .arg(temp_dir2.path().to_str().unwrap())
         .assert()
         .success()
@@ -76,7 +85,8 @@ fn multiple_paths_work() {
 #[test]
 fn json_format_works() {
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.arg("--format")
+    cmd.arg("--no-config")
+        .arg("--format")
         .arg("json")
         .assert()
         .success()
@@ -95,7 +105,8 @@ fn json_format_contains_valid_structure() {
     fs::create_dir_all(repo_path.join(".git")).unwrap();
 
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.arg(base_path.to_str().unwrap())
+    cmd.arg("--no-config")
+        .arg(base_path.to_str().unwrap())
         .arg("--format")
         .arg("json")
         .assert()
@@ -109,7 +120,7 @@ fn json_format_contains_valid_structure() {
 #[test]
 fn fetch_flag_works() {
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.arg("--fetch").assert().success();
+    cmd.arg("--no-config").arg("--fetch").assert().success();
 }
 
 #[test]
@@ -123,7 +134,8 @@ fn fetch_flag_with_specific_directory() {
     fs::create_dir_all(repo_path.join(".git")).unwrap();
 
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.arg(base_path.to_str().unwrap())
+    cmd.arg("--no-config")
+        .arg(base_path.to_str().unwrap())
         .arg("--fetch")
         .assert()
         .success()
@@ -133,7 +145,8 @@ fn fetch_flag_with_specific_directory() {
 #[test]
 fn fetch_timeout_flag_works() {
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.arg("--fetch")
+    cmd.arg("--no-config")
+        .arg("--fetch")
         .arg("--fetch-timeout")
         .arg("10")
         .assert()
@@ -151,7 +164,8 @@ fn fetch_timeout_with_specific_directory() {
     fs::create_dir_all(repo_path.join(".git")).unwrap();
 
     let mut cmd = Command::cargo_bin("pendector").unwrap();
-    cmd.arg(base_path.to_str().unwrap())
+    cmd.arg("--no-config")
+        .arg(base_path.to_str().unwrap())
         .arg("--fetch")
         .arg("--fetch-timeout")
         .arg("15")

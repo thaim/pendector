@@ -289,17 +289,15 @@ impl GitStatus {
             .spawn()
             .map_err(|e| {
                 PendectorError::from_io_error(
-                    repo_path_str.clone(),
-                    "spawn git fetch".to_string(),
-                    e,
+                    std::path::PathBuf::from(repo_path_str.clone()),
+                    format!("spawn git fetch: {e}"),
                 )
             })?;
 
         let output = child.wait_with_output().map_err(|e| {
             PendectorError::from_io_error(
-                repo_path_str.clone(),
-                "wait for git fetch".to_string(),
-                e,
+                std::path::PathBuf::from(repo_path_str.clone()),
+                format!("wait for git fetch: {e}"),
             )
         })?;
 

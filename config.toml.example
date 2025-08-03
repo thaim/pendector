@@ -1,0 +1,59 @@
+# Pendector Configuration File Example
+# Place this file at ~/.config/pendector/config.toml
+
+[defaults]
+# Maximum depth for recursive directory search
+max_depth = 3
+
+# Automatically fetch from remote before checking sync status
+fetch = false
+
+# Timeout for fetch operations in seconds
+fetch_timeout = 5
+
+# Output format: "text" or "json"
+format = "text"
+
+# Enable verbose output by default
+verbose = false
+
+# Show only repositories with changes by default
+changes_only = false
+
+# Default paths to scan when no arguments are provided
+paths = [
+    ".",
+    "~/src",
+    "~/projects"
+]
+
+# Path-specific configurations
+# These settings override defaults for specific paths
+
+[[path_configs]]
+path = "~/src"
+max_depth = 4
+fetch = true
+fetch_timeout = 10
+verbose = false
+
+[[path_configs]]
+path = "~/projects"
+max_depth = 2
+fetch = false
+changes_only = true
+
+[[path_configs]]
+path = "~/work"
+max_depth = 1
+fetch = true
+fetch_timeout = 30
+format = "json"
+
+# Example usage:
+# 
+# pendector                    # Uses default paths with path-specific configs
+# pendector ~/src              # Overrides paths, uses only default configs
+# pendector ~/src --add-path   # Combines default paths + ~/src with path-specific configs
+# pendector --config /path/to/custom.toml  # Uses custom config file
+# pendector --no-config        # Ignores config file completely
