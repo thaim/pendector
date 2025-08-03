@@ -13,7 +13,7 @@ fn main() {
     let config = if args.no_config {
         Config::default()
     } else {
-        let config_path = args.config.as_ref().map(|p| Path::new(p));
+        let config_path = args.config.as_ref().map(Path::new);
         match Config::load(config_path) {
             Ok(config) => config,
             Err(e) => {
@@ -78,11 +78,7 @@ fn main() {
             path_config.max_depth
         };
 
-        let fetch = if args.fetch {
-            true
-        } else {
-            path_config.fetch
-        };
+        let fetch = if args.fetch { true } else { path_config.fetch };
 
         let fetch_timeout = if args.fetch_timeout != 5 {
             args.fetch_timeout
@@ -90,7 +86,12 @@ fn main() {
             path_config.fetch_timeout
         };
 
-        match scanner.scan_with_options_and_timeout(expanded_path.as_ref(), max_depth, fetch, fetch_timeout) {
+        match scanner.scan_with_options_and_timeout(
+            expanded_path.as_ref(),
+            max_depth,
+            fetch,
+            fetch_timeout,
+        ) {
             Ok(mut repositories) => {
                 all_repositories.append(&mut repositories);
             }

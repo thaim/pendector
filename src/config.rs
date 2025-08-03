@@ -2,11 +2,11 @@ use crate::error::{PendectorError, PendectorResult};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]
     pub defaults: DefaultConfig,
-    
+
     #[serde(default)]
     pub path_configs: Vec<PathConfig>,
 }
@@ -15,22 +15,22 @@ pub struct Config {
 pub struct DefaultConfig {
     #[serde(default = "default_max_depth")]
     pub max_depth: usize,
-    
+
     #[serde(default)]
     pub fetch: bool,
-    
+
     #[serde(default = "default_fetch_timeout")]
     pub fetch_timeout: u64,
-    
+
     #[serde(default = "default_format")]
     pub format: String,
-    
+
     #[serde(default)]
     pub verbose: bool,
-    
+
     #[serde(default)]
     pub changes_only: bool,
-    
+
     #[serde(default)]
     pub paths: Vec<String>,
 }
@@ -44,15 +44,6 @@ pub struct PathConfig {
     pub format: Option<String>,
     pub verbose: Option<bool>,
     pub changes_only: Option<bool>,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            defaults: DefaultConfig::default(),
-            path_configs: Vec::new(),
-        }
-    }
 }
 
 impl Default for DefaultConfig {
@@ -104,11 +95,9 @@ impl Config {
             }
         })?;
 
-        let config: Config = toml::from_str(&content).map_err(|e| {
-            PendectorError::ConfigError {
-                path: config_file_path,
-                message: format!("Failed to parse config file: {e}"),
-            }
+        let config: Config = toml::from_str(&content).map_err(|e| PendectorError::ConfigError {
+            path: config_file_path,
+            message: format!("Failed to parse config file: {e}"),
         })?;
 
         Ok(config)
@@ -169,8 +158,7 @@ impl Config {
             .unwrap_or_else(|_| PathBuf::from(expanded_target_path.as_ref()));
 
         // 完全一致または親ディレクトリかチェック
-        target_canonical == config_canonical
-            || target_canonical.starts_with(&config_canonical)
+        target_canonical == config_canonical || target_canonical.starts_with(&config_canonical)
     }
 
     /// デフォルトパスの取得
