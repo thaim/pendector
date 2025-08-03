@@ -15,12 +15,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          types:
-            - feat      # include: perf
-            - fix
-            - docs
-            - refactor  # include: style
-            - test
-            - chore     # include: ci, build
-            - revert
+          # Types mapping:
+          # feat: new features (include: perf)
+          # refactor: code refactoring (include: style)
+          # chore: maintenance tasks (include: ci, build)
+          types: |
+            feat
+            fix
+            docs
+            refactor
+            test
+            chore
+            revert
           requireScope: false
