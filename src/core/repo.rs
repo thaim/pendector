@@ -8,6 +8,9 @@ pub struct Repository {
     pub has_changes: bool,
     pub current_branch: Option<String>,
     pub changed_files: Vec<String>,
+    pub needs_pull: bool,
+    pub needs_push: bool,
+    pub remote_branch: Option<String>,
 }
 
 impl Repository {
@@ -41,6 +44,9 @@ impl Repository {
             has_changes: false,
             current_branch: None,
             changed_files: Vec::new(),
+            needs_pull: false,
+            needs_push: false,
+            remote_branch: None,
         }
     }
 
@@ -54,6 +60,19 @@ impl Repository {
         self.has_changes = has_changes;
         self.current_branch = branch;
         self.changed_files = files;
+        self
+    }
+
+    /// リモート同期情報を取得する
+    pub fn with_remote_info(
+        mut self,
+        needs_pull: bool,
+        needs_push: bool,
+        remote_branch: Option<String>,
+    ) -> Self {
+        self.needs_pull = needs_pull;
+        self.needs_push = needs_push;
+        self.remote_branch = remote_branch;
         self
     }
 }

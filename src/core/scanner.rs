@@ -32,6 +32,16 @@ impl RepoScanner {
         base_path: P,
         max_depth: usize,
     ) -> Result<Vec<Repository>, Box<dyn std::error::Error>> {
+        self.scan_with_options(base_path, max_depth, false)
+    }
+
+    /// 指定の深さとfetchオプションでリポジトリを再帰的に探索する
+    pub fn scan_with_options<P: AsRef<Path>>(
+        &self,
+        base_path: P,
+        max_depth: usize,
+        should_fetch: bool,
+    ) -> Result<Vec<Repository>, Box<dyn std::error::Error>> {
         let mut repositories = Vec::new();
 
         for entry in WalkDir::new(base_path)
@@ -45,12 +55,20 @@ impl RepoScanner {
                     let mut repository = Repository::new(repo_path.to_path_buf());
 
                     // Get git status information
-                    if let Ok(status) = GitStatus::get_repository_status(repo_path) {
-                        repository = repository.with_git_info(
-                            status.has_changes,
-                            status.current_branch,
-                            status.changed_files,
-                        );
+                    if let Ok(status) =
+                        GitStatus::get_repository_status_with_fetch(repo_path, should_fetch)
+                    {
+                        repository = repository
+                            .with_git_info(
+                                status.has_changes,
+                                status.current_branch,
+                                status.changed_files,
+                            )
+                            .with_remote_info(
+                                status.needs_pull,
+                                status.needs_push,
+                                status.remote_branch,
+                            );
                     }
 
                     repositories.push(repository);

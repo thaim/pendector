@@ -22,4 +22,8 @@ pub struct Args {
     /// Output format: text or json
     #[arg(short = 'f', long, default_value = "text")]
     pub format: String,
+
+    /// Fetch from remote before checking sync status
+    #[arg(long)]
+    pub fetch: bool,
 }

@@ -66,3 +66,6 @@ ALWAYS run the following after making code changes:
 3. `cargo clippy` - Run linter (if available)
 
 These commands must be executed before considering any task complete.
+
+@RUST_PRACTICES.md
+@DEVELOPMENT_PLAN.md
