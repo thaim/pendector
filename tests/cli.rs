@@ -1,4 +1,5 @@
 use assert_cmd::Command;
+use predicates::prelude::*;
 use std::fs;
 use tempfile::TempDir;
 
@@ -70,4 +71,37 @@ fn multiple_paths_work() {
         .success()
         .stdout(predicates::str::contains("repo1"))
         .stdout(predicates::str::contains("repo2"));
+}
+
+#[test]
+fn json_format_works() {
+    let mut cmd = Command::cargo_bin("pendector").unwrap();
+    cmd.arg("--format")
+        .arg("json")
+        .assert()
+        .success()
+        .stdout(predicate::str::starts_with("["))
+        .stdout(predicate::str::ends_with("]\n"));
+}
+
+#[test]
+fn json_format_contains_valid_structure() {
+    let temp_dir = TempDir::new().unwrap();
+    let base_path = temp_dir.path();
+
+    // Create a mock git repository
+    let repo_path = base_path.join("test_repo");
+    fs::create_dir_all(&repo_path).unwrap();
+    fs::create_dir_all(repo_path.join(".git")).unwrap();
+
+    let mut cmd = Command::cargo_bin("pendector").unwrap();
+    cmd.arg(base_path.to_str().unwrap())
+        .arg("--format")
+        .arg("json")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"name\""))
+        .stdout(predicate::str::contains("\"path\""))
+        .stdout(predicate::str::contains("\"has_changes\""))
+        .stdout(predicate::str::contains("test_repo"));
 }
