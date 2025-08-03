@@ -26,4 +26,8 @@ pub struct Args {
     /// Fetch from remote before checking sync status
     #[arg(long)]
     pub fetch: bool,
+
+    /// Timeout for fetch operations in seconds
+    #[arg(long, default_value = "5")]
+    pub fetch_timeout: u64,
 }
