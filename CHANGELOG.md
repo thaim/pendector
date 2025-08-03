@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/thaim/pendector/compare/v0.2.0...v0.2.1) (2025-08-03)
+
+
+### Bug Fixes
+
+* resolve duplicate artifact names in release workflow ([#18](https://github.com/thaim/pendector/issues/18)) ([e814825](https://github.com/thaim/pendector/commit/e8148253dbb146d9e6aaf7ccabb6a7412d722e3a))
+
 ## [0.2.0](https://github.com/thaim/pendector/compare/v0.1.0...v0.2.0) (2025-08-03)
 
 
