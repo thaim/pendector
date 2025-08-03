@@ -1,4 +1,5 @@
 use crate::core::Repository;
+use crate::error::PendectorResult;
 use crate::git::GitStatus;
 use rayon::prelude::*;
 use std::path::{Path, PathBuf};
@@ -21,10 +22,7 @@ impl Default for RepoScanner {
 
 impl RepoScanner {
     /// 指定のパス以下でリポジトリを再帰的に探索する
-    pub fn scan<P: AsRef<Path>>(
-        &self,
-        base_path: P,
-    ) -> Result<Vec<Repository>, Box<dyn std::error::Error>> {
+    pub fn scan<P: AsRef<Path>>(&self, base_path: P) -> PendectorResult<Vec<Repository>> {
         self.scan_with_depth(base_path, 10)
     }
 
@@ -33,7 +31,7 @@ impl RepoScanner {
         &self,
         base_path: P,
         max_depth: usize,
-    ) -> Result<Vec<Repository>, Box<dyn std::error::Error>> {
+    ) -> PendectorResult<Vec<Repository>> {
         self.scan_with_options(base_path, max_depth, false)
     }
 
@@ -43,13 +41,22 @@ impl RepoScanner {
         base_path: P,
         max_depth: usize,
         should_fetch: bool,
-    ) -> Result<Vec<Repository>, Box<dyn std::error::Error>> {
+    ) -> PendectorResult<Vec<Repository>> {
+        let base_path = base_path.as_ref();
+        let _base_path_str = base_path.to_string_lossy().to_string();
+
         // まずすべてのリポジトリパスを収集
         let repo_paths: Vec<PathBuf> = WalkDir::new(base_path)
             .follow_links(false)
             .max_depth(max_depth)
             .into_iter()
-            .filter_map(|e| e.ok())
+            .filter_map(|e| match e {
+                Ok(entry) => Some(entry),
+                Err(err) => {
+                    eprintln!("Warning: Failed to access path during scan: {err}");
+                    None
+                }
+            })
             .filter(|entry| entry.file_type().is_dir() && entry.file_name() == ".git")
             .filter_map(|entry| entry.path().parent().map(|p| p.to_path_buf()))
             .collect();
@@ -95,13 +102,22 @@ impl RepoScanner {
         max_depth: usize,
         should_fetch: bool,
         fetch_timeout_secs: u64,
-    ) -> Result<Vec<Repository>, Box<dyn std::error::Error>> {
+    ) -> PendectorResult<Vec<Repository>> {
+        let base_path = base_path.as_ref();
+        let _base_path_str = base_path.to_string_lossy().to_string();
+
         // まずすべてのリポジトリパスを収集
         let repo_paths: Vec<PathBuf> = WalkDir::new(base_path)
             .follow_links(false)
             .max_depth(max_depth)
             .into_iter()
-            .filter_map(|e| e.ok())
+            .filter_map(|e| match e {
+                Ok(entry) => Some(entry),
+                Err(err) => {
+                    eprintln!("Warning: Failed to access path during scan: {err}");
+                    None
+                }
+            })
             .filter(|entry| entry.file_type().is_dir() && entry.file_name() == ".git")
             .filter_map(|entry| entry.path().parent().map(|p| p.to_path_buf()))
             .collect();

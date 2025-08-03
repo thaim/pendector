@@ -1,3 +1,4 @@
+use crate::error::{PendectorError, PendectorResult};
 use git2::{Repository as Git2Repository, StatusOptions};
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
@@ -21,9 +22,7 @@ pub struct GitStatus;
 
 impl GitStatus {
     /// git2ライブラリを使用してリポジトリの状態を取得
-    pub fn get_repository_status<P: AsRef<Path>>(
-        repo_path: P,
-    ) -> Result<RepoStatus, Box<dyn std::error::Error>> {
+    pub fn get_repository_status<P: AsRef<Path>>(repo_path: P) -> PendectorResult<RepoStatus> {
         Self::get_repository_status_with_fetch(repo_path, false)
     }
 
@@ -31,11 +30,22 @@ impl GitStatus {
     pub fn get_repository_status_with_fetch<P: AsRef<Path>>(
         repo_path: P,
         should_fetch: bool,
-    ) -> Result<RepoStatus, Box<dyn std::error::Error>> {
+    ) -> PendectorResult<RepoStatus> {
         let repo_path = repo_path.as_ref();
+        let repo_path_str = repo_path.to_string_lossy().to_string();
 
         // git2でリポジトリを開く
-        let repo = Git2Repository::open(repo_path)?;
+        let repo = Git2Repository::open(repo_path).map_err(|e| {
+            if e.code() == git2::ErrorCode::NotFound {
+                PendectorError::GitRepositoryNotFound(repo_path_str.clone())
+            } else {
+                PendectorError::from_git2_error(
+                    repo_path_str.clone(),
+                    "open repository".to_string(),
+                    e,
+                )
+            }
+        })?;
 
         // fetchが要求された場合は実行
         if should_fetch {
@@ -56,7 +66,9 @@ impl GitStatus {
             .renames_head_to_index(false)
             .renames_index_to_workdir(false);
 
-        let statuses = repo.statuses(Some(&mut opts))?;
+        let statuses = repo.statuses(Some(&mut opts)).map_err(|e| {
+            PendectorError::from_git2_error(repo_path_str.clone(), "get status".to_string(), e)
+        })?;
         let has_changes = !statuses.is_empty();
 
         let changed_files: Vec<String> = statuses
@@ -94,9 +106,7 @@ impl GitStatus {
     }
 
     /// リモートブランチとの同期状態をチェック
-    fn check_remote_sync(
-        repo: &Git2Repository,
-    ) -> Result<(bool, bool, Option<String>), Box<dyn std::error::Error>> {
+    fn check_remote_sync(repo: &Git2Repository) -> PendectorResult<(bool, bool, Option<String>)> {
         // デフォルト値
         let mut needs_pull = false;
         let mut needs_push = false;
@@ -255,7 +265,7 @@ impl GitStatus {
     }
 
     /// git fetchを実行してリモートの最新状態を取得（タイムアウト付き）
-    fn perform_fetch<P: AsRef<Path>>(repo_path: P) -> Result<(), Box<dyn std::error::Error>> {
+    fn perform_fetch<P: AsRef<Path>>(repo_path: P) -> PendectorResult<()> {
         Self::perform_fetch_with_timeout(repo_path, Duration::from_secs(5))
     }
 
@@ -263,8 +273,9 @@ impl GitStatus {
     fn perform_fetch_with_timeout<P: AsRef<Path>>(
         repo_path: P,
         timeout: Duration,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> PendectorResult<()> {
         let repo_path = repo_path.as_ref();
+        let repo_path_str = repo_path.to_string_lossy().to_string();
 
         // タイムアウト付きでgit fetch コマンドを実行
         let child = Command::new("timeout")
@@ -275,40 +286,37 @@ impl GitStatus {
             .env("GIT_ASKPASS", "true") // 認証プロンプトを無効化（常にfalseを返す）
             .env("SSH_ASKPASS", "true") // SSH認証プロンプトも無効化
             .current_dir(repo_path)
-            .spawn()?;
+            .spawn()
+            .map_err(|e| {
+                PendectorError::from_io_error(
+                    repo_path_str.clone(),
+                    "spawn git fetch".to_string(),
+                    e,
+                )
+            })?;
 
-        let output = child.wait_with_output()?;
+        let output = child.wait_with_output().map_err(|e| {
+            PendectorError::from_io_error(
+                repo_path_str.clone(),
+                "wait for git fetch".to_string(),
+                e,
+            )
+        })?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            let repo_name = repo_path
-                .file_name()
-                .map(|n| n.to_string_lossy())
-                .unwrap_or_else(|| "unknown".into());
 
-            // タイムアウトの場合の特別処理
-            if output.status.code() == Some(124) {
-                eprintln!(
-                    "Warning: {repo_name}: Fetch timed out after {}s (skipping)",
-                    timeout.as_secs()
-                );
+            // fetchエラーを適切なPendectorErrorに変換
+            let mut error =
+                PendectorError::from_fetch_error(repo_path_str, &stderr, output.status.code());
+
+            // タイムアウトエラーの場合は実際のタイムアウト値を設定
+            if let PendectorError::TimeoutError { timeout_secs, .. } = &mut error {
+                *timeout_secs = timeout.as_secs();
             }
-            // ネットワークエラーや認証エラーは警告として扱い、処理を継続
-            else if stderr.contains("Repository not found") {
-                eprintln!("Warning: {repo_name}: Remote repository not found (skipping fetch)");
-            } else if stderr.contains("Could not read from remote")
-                || stderr.contains("Authentication failed")
-            {
-                eprintln!("Warning: {repo_name}: Authentication or access denied (skipping fetch)");
-            } else if stderr.contains("Network is unreachable")
-                || stderr.contains("Temporary failure")
-            {
-                eprintln!("Warning: {repo_name}: Network error (skipping fetch)");
-            } else if !stderr.trim().is_empty() {
-                eprintln!("Warning: {repo_name}: Failed to fetch - {}", stderr.trim());
-            } else {
-                eprintln!("Warning: {repo_name}: Failed to fetch from remote");
-            }
+
+            // fetchエラーは警告として扱い、処理を継続
+            eprintln!("Warning: {error}");
         }
 
         Ok(())
