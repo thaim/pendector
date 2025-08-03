@@ -101,12 +101,12 @@ impl GitStatus {
         if let Ok(head) = repo.head() {
             if let Some(branch_name) = head.shorthand() {
                 // 対応するリモートブランチを検索
-                let remote_branch_name = format!("origin/{}", branch_name);
+                let remote_branch_name = format!("origin/{branch_name}");
 
                 if let Some(local_oid) = head.target() {
                     // リモートブランチの存在確認とOID取得
                     if let Ok(remote_ref) =
-                        repo.find_reference(&format!("refs/remotes/{}", remote_branch_name))
+                        repo.find_reference(&format!("refs/remotes/{remote_branch_name}"))
                     {
                         remote_branch = Some(remote_branch_name.clone());
 
@@ -150,16 +150,38 @@ impl GitStatus {
     fn perform_fetch<P: AsRef<Path>>(repo_path: P) -> Result<(), Box<dyn std::error::Error>> {
         let repo_path = repo_path.as_ref();
 
-        // git fetch コマンドを実行
+        // git fetch コマンドを実行（非対話的モード）
         let output = Command::new("git")
             .args(["fetch", "--all", "--quiet"])
+            .env("GIT_TERMINAL_PROMPT", "0") // ターミナルプロンプトを無効化
+            .env("GIT_ASKPASS", "true") // 認証プロンプトを無効化（常にfalseを返す）
+            .env("SSH_ASKPASS", "true") // SSH認証プロンプトも無効化
             .current_dir(repo_path)
             .output()?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
+            let repo_name = repo_path
+                .file_name()
+                .map(|n| n.to_string_lossy())
+                .unwrap_or_else(|| "unknown".into());
+
             // ネットワークエラーや認証エラーは警告として扱い、処理を継続
-            eprintln!("Warning: Failed to fetch from remote: {}", stderr.trim());
+            if stderr.contains("Repository not found") {
+                eprintln!("Warning: {repo_name}: Remote repository not found (skipping fetch)");
+            } else if stderr.contains("Could not read from remote")
+                || stderr.contains("Authentication failed")
+            {
+                eprintln!("Warning: {repo_name}: Authentication or access denied (skipping fetch)");
+            } else if stderr.contains("Network is unreachable")
+                || stderr.contains("Temporary failure")
+            {
+                eprintln!("Warning: {repo_name}: Network error (skipping fetch)");
+            } else if !stderr.trim().is_empty() {
+                eprintln!("Warning: {repo_name}: Failed to fetch - {}", stderr.trim());
+            } else {
+                eprintln!("Warning: {repo_name}: Failed to fetch from remote");
+            }
         }
 
         Ok(())
