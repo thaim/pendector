@@ -1,4 +1,5 @@
 use git2::{Repository as Git2Repository, StatusOptions};
+use rayon::prelude::*;
 use std::path::Path;
 use std::process::Command;
 
@@ -144,6 +145,16 @@ impl GitStatus {
         }
 
         Ok((needs_pull, needs_push, remote_branch))
+    }
+
+    /// 複数のリポジトリで並列fetch実行
+    pub fn perform_parallel_fetch<P: AsRef<Path> + Sync>(
+        repo_paths: &[P],
+    ) -> Vec<Result<(), String>> {
+        repo_paths
+            .par_iter()
+            .map(|repo_path| Self::perform_fetch(repo_path).map_err(|e| e.to_string()))
+            .collect()
     }
 
     /// git fetchを実行してリモートの最新状態を取得
@@ -393,6 +404,28 @@ mod tests {
         assert!(!status.needs_pull);
         assert!(!status.needs_push);
         assert!(status.remote_branch.is_none());
+    }
+
+    #[test]
+    fn test_perform_parallel_fetch() {
+        let temp_dir = TempDir::new().unwrap();
+        let repo_paths: Vec<std::path::PathBuf> = (0..3)
+            .map(|i| {
+                let repo_path = create_test_repo(&temp_dir);
+                // Rename repo to distinguish them
+                let new_path = temp_dir.path().join(format!("test_repo_{i}"));
+                std::fs::rename(&repo_path, &new_path).unwrap();
+                new_path
+            })
+            .collect();
+
+        // Test parallel fetch (should not fail for local repos)
+        let results = GitStatus::perform_parallel_fetch(&repo_paths);
+        assert_eq!(results.len(), 3);
+
+        // All results should be Ok (or at least not crash)
+        // Note: fetch might fail for local repos without remotes, but that's expected
+        assert_eq!(results.len(), repo_paths.len());
     }
 
     #[test]

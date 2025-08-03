@@ -1,6 +1,7 @@
 use crate::core::Repository;
 use crate::git::GitStatus;
-use std::path::Path;
+use rayon::prelude::*;
+use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 pub struct RepoScanner;
@@ -42,39 +43,46 @@ impl RepoScanner {
         max_depth: usize,
         should_fetch: bool,
     ) -> Result<Vec<Repository>, Box<dyn std::error::Error>> {
-        let mut repositories = Vec::new();
-
-        for entry in WalkDir::new(base_path)
+        // まずすべてのリポジトリパスを収集
+        let repo_paths: Vec<PathBuf> = WalkDir::new(base_path)
             .follow_links(false)
             .max_depth(max_depth)
             .into_iter()
             .filter_map(|e| e.ok())
-        {
-            if entry.file_type().is_dir() && entry.file_name() == ".git" {
-                if let Some(repo_path) = entry.path().parent() {
-                    let mut repository = Repository::new(repo_path.to_path_buf());
+            .filter(|entry| entry.file_type().is_dir() && entry.file_name() == ".git")
+            .filter_map(|entry| entry.path().parent().map(|p| p.to_path_buf()))
+            .collect();
 
-                    // Get git status information
-                    if let Ok(status) =
-                        GitStatus::get_repository_status_with_fetch(repo_path, should_fetch)
-                    {
-                        repository = repository
-                            .with_git_info(
-                                status.has_changes,
-                                status.current_branch,
-                                status.changed_files,
-                            )
-                            .with_remote_info(
-                                status.needs_pull,
-                                status.needs_push,
-                                status.remote_branch,
-                            );
-                    }
-
-                    repositories.push(repository);
-                }
-            }
+        // fetchが必要な場合は並列実行
+        if should_fetch && !repo_paths.is_empty() {
+            let _fetch_results = GitStatus::perform_parallel_fetch(&repo_paths);
+            // fetch結果は警告として出力されるので、ここでは特に処理しない
         }
+
+        // 各リポジトリの状態を並列取得
+        let repositories: Vec<Repository> = repo_paths
+            .par_iter()
+            .filter_map(|repo_path| {
+                let mut repository = Repository::new(repo_path.clone());
+
+                // Get git status information (fetchなしで実行)
+                if let Ok(status) = GitStatus::get_repository_status(repo_path) {
+                    repository = repository
+                        .with_git_info(
+                            status.has_changes,
+                            status.current_branch,
+                            status.changed_files,
+                        )
+                        .with_remote_info(
+                            status.needs_pull,
+                            status.needs_push,
+                            status.remote_branch,
+                        );
+                }
+
+                Some(repository)
+            })
+            .collect();
 
         Ok(repositories)
     }
