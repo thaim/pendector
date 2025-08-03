@@ -8,23 +8,23 @@ jobs:
   title-check:
     name: Check PR Title Format
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Check PR Title follows Conventional Commits
         uses: amannn/action-semantic-pull-request@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          # Types mapping:
+          # feat: new features (include: perf)
+          # refactor: code refactoring (include: style)
+          # chore: maintenance tasks (include: ci, build)
           types: |
             feat
             fix
             docs
-            style
             refactor
-            perf
             test
             chore
-            ci
-            build
             revert
           requireScope: false
