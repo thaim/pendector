@@ -33,6 +33,9 @@ pub struct DefaultConfig {
 
     #[serde(default)]
     pub paths: Vec<String>,
+
+    #[serde(default)]
+    pub exclude_patterns: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,6 +47,7 @@ pub struct PathConfig {
     pub format: Option<String>,
     pub verbose: Option<bool>,
     pub changes_only: Option<bool>,
+    pub exclude_patterns: Option<Vec<String>>,
 }
 
 impl Default for DefaultConfig {
@@ -56,6 +60,7 @@ impl Default for DefaultConfig {
             verbose: false,
             changes_only: false,
             paths: vec![".".to_string()],
+            exclude_patterns: Vec::new(),
         }
     }
 }
@@ -140,6 +145,9 @@ impl Config {
             changes_only: path_config
                 .and_then(|pc| pc.changes_only)
                 .unwrap_or(self.defaults.changes_only),
+            exclude_patterns: path_config
+                .and_then(|pc| pc.exclude_patterns.clone())
+                .unwrap_or_else(|| self.defaults.exclude_patterns.clone()),
         }
     }
 
@@ -175,6 +183,7 @@ pub struct PathConfigResolved {
     pub format: String,
     pub verbose: bool,
     pub changes_only: bool,
+    pub exclude_patterns: Vec<String>,
 }
 
 #[cfg(test)]
@@ -217,11 +226,13 @@ format = "json"
 verbose = true
 changes_only = true
 paths = ["~/src", "~/work"]
+exclude_patterns = ["node_modules", "*.log"]
 
 [[path_configs]]
 path = "~/src"
 max_depth = 7
 fetch = true
+exclude_patterns = ["target", "*.tmp"]
 
 [[path_configs]]
 path = "~/work"
@@ -239,11 +250,19 @@ fetch = false
         assert!(config.defaults.verbose);
         assert!(config.defaults.changes_only);
         assert_eq!(config.defaults.paths, vec!["~/src", "~/work"]);
+        assert_eq!(
+            config.defaults.exclude_patterns,
+            vec!["node_modules", "*.log"]
+        );
 
         assert_eq!(config.path_configs.len(), 2);
         assert_eq!(config.path_configs[0].path, "~/src");
         assert_eq!(config.path_configs[0].max_depth, Some(7));
         assert_eq!(config.path_configs[0].fetch, Some(true));
+        assert_eq!(
+            config.path_configs[0].exclude_patterns,
+            Some(vec!["target".to_string(), "*.tmp".to_string()])
+        );
     }
 
     #[test]
@@ -255,6 +274,7 @@ fetch = false
         assert!(!path_config.fetch);
         assert_eq!(path_config.fetch_timeout, 5);
         assert_eq!(path_config.format, "text");
+        assert!(path_config.exclude_patterns.is_empty());
     }
 
     #[test]
@@ -268,6 +288,7 @@ fetch = false
             format: Some("json".to_string()),
             verbose: Some(true),
             changes_only: Some(true),
+            exclude_patterns: Some(vec!["*.tmp".to_string()]),
         });
 
         let path_config = config.get_path_config("/test/path");
@@ -277,6 +298,7 @@ fetch = false
         assert_eq!(path_config.format, "json");
         assert!(path_config.verbose);
         assert!(path_config.changes_only);
+        assert_eq!(path_config.exclude_patterns, vec!["*.tmp".to_string()]);
     }
 
     #[test]
