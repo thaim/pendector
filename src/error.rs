@@ -13,9 +13,8 @@ pub enum PendectorError {
     },
     /// ファイルシステム操作に失敗
     FileSystemError {
-        path: String,
-        operation: String,
-        source: std::io::Error,
+        path: std::path::PathBuf,
+        message: String,
     },
     /// パスが無効
     InvalidPath(String),
@@ -27,7 +26,10 @@ pub enum PendectorError {
     /// フォーマット処理に失敗
     FormatError(String),
     /// 設定エラー
-    ConfigError(String),
+    ConfigError {
+        path: std::path::PathBuf,
+        message: String,
+    },
     /// ネットワークエラー（fetch関連）
     NetworkError { repo_path: String, message: String },
     /// タイムアウトエラー
@@ -55,15 +57,8 @@ impl fmt::Display for PendectorError {
                     "Git operation '{operation}' failed in '{repo_path}': {source}"
                 )
             }
-            PendectorError::FileSystemError {
-                path,
-                operation,
-                source,
-            } => {
-                write!(
-                    f,
-                    "File system operation '{operation}' failed for '{path}': {source}"
-                )
+            PendectorError::FileSystemError { path, message } => {
+                write!(f, "File system error for '{}': {message}", path.display())
             }
             PendectorError::InvalidPath(path) => {
                 write!(f, "Invalid path: '{path}'")
@@ -74,8 +69,8 @@ impl fmt::Display for PendectorError {
             PendectorError::FormatError(msg) => {
                 write!(f, "Format error: {msg}")
             }
-            PendectorError::ConfigError(msg) => {
-                write!(f, "Configuration error: {msg}")
+            PendectorError::ConfigError { path, message } => {
+                write!(f, "Configuration error in '{}': {message}", path.display())
             }
             PendectorError::NetworkError { repo_path, message } => {
                 write!(f, "Network error for '{repo_path}': {message}")
@@ -100,7 +95,6 @@ impl std::error::Error for PendectorError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             PendectorError::GitOperationFailed { source, .. } => Some(source.as_ref()),
-            PendectorError::FileSystemError { source, .. } => Some(source),
             PendectorError::ScanError { source, .. } => Some(source.as_ref()),
             _ => None,
         }
@@ -122,12 +116,8 @@ impl PendectorError {
     }
 
     /// IOエラーからPendectorErrorを作成
-    pub fn from_io_error(path: String, operation: String, error: std::io::Error) -> Self {
-        PendectorError::FileSystemError {
-            path,
-            operation,
-            source: error,
-        }
+    pub fn from_io_error(path: std::path::PathBuf, message: String) -> Self {
+        PendectorError::FileSystemError { path, message }
     }
 
     /// fetch関連のエラーを分類して適切なPendectorErrorを作成

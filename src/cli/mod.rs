@@ -4,8 +4,11 @@ use clap::Parser;
 #[command(version, about, long_about = None)]
 pub struct Args {
     /// Base directories to scan for repositories
-    #[arg(default_values = &["."])]
     pub paths: Vec<String>,
+
+    /// Add specified paths to config file default paths instead of replacing them
+    #[arg(short = 'a', long = "add-path")]
+    pub add_path: bool,
 
     /// Show only repositories with changes
     #[arg(short = 'c', long)]
@@ -30,4 +33,12 @@ pub struct Args {
     /// Timeout for fetch operations in seconds
     #[arg(long, default_value = "5")]
     pub fetch_timeout: u64,
+
+    /// Path to configuration file
+    #[arg(long)]
+    pub config: Option<String>,
+
+    /// Ignore configuration file
+    #[arg(long)]
+    pub no_config: bool,
 }
