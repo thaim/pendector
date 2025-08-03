@@ -1,7 +1,10 @@
 use git2::{Repository as Git2Repository, StatusOptions};
+use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use std::path::Path;
 use std::process::Command;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 #[derive(Debug, Clone)]
@@ -152,10 +155,54 @@ impl GitStatus {
     pub fn perform_parallel_fetch<P: AsRef<Path> + Sync>(
         repo_paths: &[P],
     ) -> Vec<Result<(), String>> {
-        repo_paths
+        Self::perform_parallel_fetch_with_progress(repo_paths, true)
+    }
+
+    /// プログレスバー表示オプション付きの並列fetch実行
+    pub fn perform_parallel_fetch_with_progress<P: AsRef<Path> + Sync>(
+        repo_paths: &[P],
+        show_progress: bool,
+    ) -> Vec<Result<(), String>> {
+        if repo_paths.is_empty() {
+            return Vec::new();
+        }
+
+        let progress_bar = if show_progress {
+            let pb = ProgressBar::new(repo_paths.len() as u64);
+            pb.set_style(
+                ProgressStyle::default_bar()
+                    .template(
+                        "Fetching repositories [{wide_bar:.cyan/blue}] {pos}/{len} ({elapsed})",
+                    )
+                    .unwrap()
+                    .progress_chars("##-"),
+            );
+            Some(pb)
+        } else {
+            None
+        };
+
+        let counter = Arc::new(AtomicUsize::new(0));
+
+        let results: Vec<Result<(), String>> = repo_paths
             .par_iter()
-            .map(|repo_path| Self::perform_fetch(repo_path).map_err(|e| e.to_string()))
-            .collect()
+            .map(|repo_path| {
+                let result = Self::perform_fetch(repo_path).map_err(|e| e.to_string());
+
+                if let Some(ref pb) = progress_bar {
+                    let current = counter.fetch_add(1, Ordering::SeqCst) + 1;
+                    pb.set_position(current as u64);
+                }
+
+                result
+            })
+            .collect();
+
+        if let Some(pb) = progress_bar {
+            pb.finish_with_message("Completed");
+        }
+
+        results
     }
 
     /// git fetchを実行してリモートの最新状態を取得（タイムアウト付き）
@@ -439,8 +486,8 @@ mod tests {
             })
             .collect();
 
-        // Test parallel fetch (should not fail for local repos)
-        let results = GitStatus::perform_parallel_fetch(&repo_paths);
+        // Test parallel fetch without progress bar (for testing)
+        let results = GitStatus::perform_parallel_fetch_with_progress(&repo_paths, false);
         assert_eq!(results.len(), 3);
 
         // All results should be Ok (or at least not crash)

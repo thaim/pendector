@@ -53,9 +53,9 @@ impl RepoScanner {
             .filter_map(|entry| entry.path().parent().map(|p| p.to_path_buf()))
             .collect();
 
-        // fetchが必要な場合は並列実行
+        // fetchが必要な場合は並列実行（プログレスバー付き）
         if should_fetch && !repo_paths.is_empty() {
-            let _fetch_results = GitStatus::perform_parallel_fetch(&repo_paths);
+            let _fetch_results = GitStatus::perform_parallel_fetch_with_progress(&repo_paths, true);
             // fetch結果は警告として出力されるので、ここでは特に処理しない
         }
 
