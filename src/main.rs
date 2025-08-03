@@ -30,6 +30,6 @@ fn main() {
         all_repositories
     };
 
-    let formatter = OutputFormatter::new(args.verbose);
+    let formatter = OutputFormatter::new(args.verbose, args.format);
     println!("{}", formatter.format_repositories(&filtered_repos));
 }

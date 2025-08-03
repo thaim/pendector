@@ -1,16 +1,29 @@
 use crate::core::Repository;
 use colored::*;
+use serde_json;
 
 pub struct OutputFormatter {
     pub verbose: bool,
+    pub format: String,
 }
 
 impl OutputFormatter {
-    pub fn new(verbose: bool) -> Self {
-        Self { verbose }
+    pub fn new(verbose: bool, format: String) -> Self {
+        Self { verbose, format }
     }
 
     pub fn format_repositories(&self, repositories: &[Repository]) -> String {
+        match self.format.as_str() {
+            "json" => self.format_repositories_json(repositories),
+            _ => self.format_repositories_text(repositories),
+        }
+    }
+
+    fn format_repositories_json(&self, repositories: &[Repository]) -> String {
+        serde_json::to_string_pretty(repositories).unwrap_or_else(|_| "{}".to_string())
+    }
+
+    fn format_repositories_text(&self, repositories: &[Repository]) -> String {
         if repositories.is_empty() {
             return "No repositories found.".to_string();
         }
@@ -95,7 +108,7 @@ mod tests {
 
     #[test]
     fn test_format_repositories_empty() {
-        let formatter = OutputFormatter::new(false);
+        let formatter = OutputFormatter::new(false, "text".to_string());
         let repositories = Vec::new();
 
         let result = formatter.format_repositories(&repositories);
@@ -104,7 +117,7 @@ mod tests {
 
     #[test]
     fn test_format_repositories_single_clean() {
-        let formatter = OutputFormatter::new(false);
+        let formatter = OutputFormatter::new(false, "text".to_string());
         let repositories = vec![create_test_repository("clean_repo", false, Some("main"), 0)];
 
         let result = formatter.format_repositories(&repositories);
@@ -115,7 +128,7 @@ mod tests {
 
     #[test]
     fn test_format_repositories_single_with_changes() {
-        let formatter = OutputFormatter::new(false);
+        let formatter = OutputFormatter::new(false, "text".to_string());
         let repositories = vec![create_test_repository(
             "dirty_repo",
             true,
@@ -130,7 +143,7 @@ mod tests {
 
     #[test]
     fn test_format_repositories_multiple() {
-        let formatter = OutputFormatter::new(false);
+        let formatter = OutputFormatter::new(false, "text".to_string());
         let repositories = vec![
             create_test_repository("repo1", false, Some("main"), 0),
             create_test_repository("repo2", true, Some("feature"), 2),
@@ -148,7 +161,7 @@ mod tests {
 
     #[test]
     fn test_format_repositories_verbose_mode() {
-        let formatter = OutputFormatter::new(true);
+        let formatter = OutputFormatter::new(true, "text".to_string());
         let repositories = vec![
             create_test_repository("repo1", false, Some("main"), 0),
             create_test_repository("repo2", true, Some("feature/test"), 5),
@@ -170,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_format_repository_default_mode() {
-        let formatter = OutputFormatter::new(false);
+        let formatter = OutputFormatter::new(false, "text".to_string());
         let repo = create_test_repository("test_repo", true, Some("main"), 3);
 
         let result = formatter.format_repository(&repo);
@@ -182,7 +195,7 @@ mod tests {
 
     #[test]
     fn test_format_repository_verbose_mode() {
-        let formatter = OutputFormatter::new(true);
+        let formatter = OutputFormatter::new(true, "text".to_string());
         let repo = create_test_repository("test_repo", true, Some("develop"), 7);
 
         let result = formatter.format_repository(&repo);
@@ -193,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_format_repository_verbose_no_branch() {
-        let formatter = OutputFormatter::new(true);
+        let formatter = OutputFormatter::new(true, "text".to_string());
         let repo = create_test_repository("test_repo", false, None, 0);
 
         let result = formatter.format_repository(&repo);
@@ -204,10 +217,39 @@ mod tests {
 
     #[test]
     fn test_formatter_verbose_flag() {
-        let verbose_formatter = OutputFormatter::new(true);
-        let simple_formatter = OutputFormatter::new(false);
+        let verbose_formatter = OutputFormatter::new(true, "text".to_string());
+        let simple_formatter = OutputFormatter::new(false, "text".to_string());
 
         assert!(verbose_formatter.verbose);
         assert!(!simple_formatter.verbose);
+    }
+
+    #[test]
+    fn test_format_repositories_json() {
+        let formatter = OutputFormatter::new(false, "json".to_string());
+        let repositories = vec![
+            create_test_repository("repo1", false, Some("main"), 0),
+            create_test_repository("repo2", true, Some("feature"), 2),
+        ];
+
+        let result = formatter.format_repositories(&repositories);
+
+        // Should be valid JSON
+        assert!(serde_json::from_str::<Vec<serde_json::Value>>(&result).is_ok());
+
+        // Should contain repository data
+        assert!(result.contains("repo1"));
+        assert!(result.contains("repo2"));
+        assert!(result.contains("main"));
+        assert!(result.contains("feature"));
+    }
+
+    #[test]
+    fn test_format_repositories_json_empty() {
+        let formatter = OutputFormatter::new(false, "json".to_string());
+        let repositories = Vec::new();
+
+        let result = formatter.format_repositories(&repositories);
+        assert_eq!(result, "[]");
     }
 }

@@ -18,4 +18,8 @@ pub struct Args {
     /// Maximum depth for recursive directory search
     #[arg(short = 'd', long, default_value = "3")]
     pub max_depth: usize,
+
+    /// Output format: text or json
+    #[arg(short = 'f', long, default_value = "text")]
+    pub format: String,
 }
