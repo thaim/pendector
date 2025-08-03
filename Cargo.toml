@@ -3,6 +3,7 @@ name = "pendector"
 version = "0.1.0"
 authors = ["thaim"]
 description = "Detect and manage pending changes across your local repositories"
+license = "MIT"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

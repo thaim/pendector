@@ -46,6 +46,14 @@ Run `pendector --help` for all available options.
 
 ## Installation
 
+### Option 1: Download pre-built binary (Recommended)
+
+Download the latest binary from the [Releases page](https://github.com/thaim/pendector/releases).
+
+### Option 2: Build from source
+
+Requirements: Rust 1.70+ and Cargo
+
 ```bash
 git clone https://github.com/thaim/pendector.git
 cd pendector

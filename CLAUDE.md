@@ -68,4 +68,3 @@ ALWAYS run the following after making code changes:
 These commands must be executed before considering any task complete.
 
 @docs/RUST_PRACTICES.md
-@docs/DEVELOPMENT_PLAN.md
