@@ -117,8 +117,8 @@ mod tests {
 
     #[test]
     fn test_exclude_filter_merge_patterns() {
-        let patterns1 = vec!["node_modules".to_string()];
-        let patterns2 = vec!["target".to_string(), "*.tmp".to_string()];
+        let patterns1 = ["node_modules".to_string()];
+        let patterns2 = ["target".to_string(), "*.tmp".to_string()];
         let pattern_lists = vec![&patterns1[..], &patterns2[..]];
 
         let filter = ExcludeFilter::merge_patterns(&pattern_lists).unwrap();
