@@ -158,6 +158,55 @@ impl GitStatus {
         Self::perform_parallel_fetch_with_progress(repo_paths, true)
     }
 
+    /// タイムアウト設定付きの並列fetch実行
+    pub fn perform_parallel_fetch_with_timeout_and_progress<P: AsRef<Path> + Sync>(
+        repo_paths: &[P],
+        timeout: Duration,
+        show_progress: bool,
+    ) -> Vec<Result<(), String>> {
+        if repo_paths.is_empty() {
+            return Vec::new();
+        }
+
+        let progress_bar = if show_progress {
+            let pb = ProgressBar::new(repo_paths.len() as u64);
+            pb.set_style(
+                ProgressStyle::default_bar()
+                    .template(
+                        "Fetching repositories [{wide_bar:.cyan/blue}] {pos}/{len} ({elapsed})",
+                    )
+                    .unwrap()
+                    .progress_chars("##-"),
+            );
+            Some(pb)
+        } else {
+            None
+        };
+
+        let counter = Arc::new(AtomicUsize::new(0));
+
+        let results: Vec<Result<(), String>> = repo_paths
+            .par_iter()
+            .map(|repo_path| {
+                let result =
+                    Self::perform_fetch_with_timeout(repo_path, timeout).map_err(|e| e.to_string());
+
+                if let Some(ref pb) = progress_bar {
+                    let current = counter.fetch_add(1, Ordering::SeqCst) + 1;
+                    pb.set_position(current as u64);
+                }
+
+                result
+            })
+            .collect();
+
+        if let Some(pb) = progress_bar {
+            pb.finish_with_message("Completed");
+        }
+
+        results
+    }
+
     /// プログレスバー表示オプション付きの並列fetch実行
     pub fn perform_parallel_fetch_with_progress<P: AsRef<Path> + Sync>(
         repo_paths: &[P],

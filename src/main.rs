@@ -10,7 +10,12 @@ fn main() {
     let mut all_repositories = Vec::new();
 
     for path in &args.paths {
-        match scanner.scan_with_options(path, args.max_depth, args.fetch) {
+        match scanner.scan_with_options_and_timeout(
+            path,
+            args.max_depth,
+            args.fetch,
+            args.fetch_timeout,
+        ) {
             Ok(mut repositories) => {
                 all_repositories.append(&mut repositories);
             }
