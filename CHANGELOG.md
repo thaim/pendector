@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/thaim/pendector/compare/v0.1.0...v0.2.0) (2025-08-03)
+
+
+### Features
+
+* add ignore option ([#16](https://github.com/thaim/pendector/issues/16)) ([4394f25](https://github.com/thaim/pendector/commit/4394f252c410f7a27035ca7933f221bf52b323ef))
+* config file support ([#14](https://github.com/thaim/pendector/issues/14)) ([02e7d9c](https://github.com/thaim/pendector/commit/02e7d9c36f7ee7d1d87f1cd6cf29c5ddae733fd8))
+
 ## 0.1.0 (2025-08-03)
 
 
