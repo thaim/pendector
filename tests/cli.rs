@@ -105,3 +105,27 @@ fn json_format_contains_valid_structure() {
         .stdout(predicate::str::contains("\"has_changes\""))
         .stdout(predicate::str::contains("test_repo"));
 }
+
+#[test]
+fn fetch_flag_works() {
+    let mut cmd = Command::cargo_bin("pendector").unwrap();
+    cmd.arg("--fetch").assert().success();
+}
+
+#[test]
+fn fetch_flag_with_specific_directory() {
+    let temp_dir = TempDir::new().unwrap();
+    let base_path = temp_dir.path();
+
+    // Create a mock git repository
+    let repo_path = base_path.join("test_repo");
+    fs::create_dir_all(&repo_path).unwrap();
+    fs::create_dir_all(repo_path.join(".git")).unwrap();
+
+    let mut cmd = Command::cargo_bin("pendector").unwrap();
+    cmd.arg(base_path.to_str().unwrap())
+        .arg("--fetch")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("test_repo"));
+}

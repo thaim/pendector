@@ -63,10 +63,36 @@ impl OutputFormatter {
             .map(|p| p.display().to_string())
             .unwrap_or_else(|_| repo.path.display().to_string());
 
+        // リモート同期状態の表示
+        let mut remote_status = String::new();
+        if repo.needs_pull && repo.needs_push {
+            remote_status.push_str(" [↑↓]");
+        } else if repo.needs_pull {
+            remote_status.push_str(" [↓]");
+        } else if repo.needs_push {
+            remote_status.push_str(" [↑]");
+        }
+
         if self.verbose {
             // Verbose mode shows additional details like specific changed files
-            let mut result =
-                format!("{name} [{branch}] ({files_count} changed files)\n  Path: {path}");
+            let mut result = format!(
+                "{name} [{branch}]{remote_status} ({files_count} changed files)\n  Path: {path}"
+            );
+
+            if let Some(ref remote_branch) = repo.remote_branch {
+                result.push_str(&format!("\n  Remote: {remote_branch}"));
+            }
+
+            if repo.needs_pull || repo.needs_push {
+                result.push_str("\n  Sync status: ");
+                if repo.needs_pull && repo.needs_push {
+                    result.push_str("needs pull and push");
+                } else if repo.needs_pull {
+                    result.push_str("needs pull");
+                } else if repo.needs_push {
+                    result.push_str("needs push");
+                }
+            }
 
             if !repo.changed_files.is_empty() {
                 result.push_str("\n  Changed files:");
@@ -77,7 +103,7 @@ impl OutputFormatter {
             result
         } else {
             // Default mode shows essential information
-            format!("{name} [{branch}] ({files_count} changed files) - {path}")
+            format!("{name} [{branch}]{remote_status} ({files_count} changed files) - {path}")
         }
     }
 }
@@ -93,17 +119,35 @@ mod tests {
         branch: Option<&str>,
         file_count: usize,
     ) -> Repository {
+        create_test_repository_with_remote(
+            name,
+            has_changes,
+            branch,
+            file_count,
+            false,
+            false,
+            None,
+        )
+    }
+
+    fn create_test_repository_with_remote(
+        name: &str,
+        has_changes: bool,
+        branch: Option<&str>,
+        file_count: usize,
+        needs_pull: bool,
+        needs_push: bool,
+        remote_branch: Option<&str>,
+    ) -> Repository {
         let files = if file_count > 0 {
             (0..file_count).map(|i| format!("file{i}.txt")).collect()
         } else {
             Vec::new()
         };
 
-        Repository::new(PathBuf::from(format!("/test/{name}"))).with_git_info(
-            has_changes,
-            branch.map(|s| s.to_string()),
-            files,
-        )
+        Repository::new(PathBuf::from(format!("/test/{name}")))
+            .with_git_info(has_changes, branch.map(|s| s.to_string()), files)
+            .with_remote_info(needs_pull, needs_push, remote_branch.map(|s| s.to_string()))
     }
 
     #[test]
@@ -251,5 +295,72 @@ mod tests {
 
         let result = formatter.format_repositories(&repositories);
         assert_eq!(result, "[]");
+    }
+
+    #[test]
+    fn test_format_repository_with_remote_sync() {
+        let formatter = OutputFormatter::new(true, "text".to_string());
+
+        // Test repository that needs push
+        let repo_needs_push = create_test_repository_with_remote(
+            "push_repo",
+            false,
+            Some("main"),
+            0,
+            false,
+            true,
+            Some("origin/main"),
+        );
+        let result = formatter.format_repository(&repo_needs_push);
+        assert!(result.contains("push_repo"));
+        assert!(result.contains("[main] [↑]"));
+        assert!(result.contains("Remote: origin/main"));
+        assert!(result.contains("needs push"));
+
+        // Test repository that needs pull
+        let repo_needs_pull = create_test_repository_with_remote(
+            "pull_repo",
+            false,
+            Some("develop"),
+            0,
+            true,
+            false,
+            Some("origin/develop"),
+        );
+        let result = formatter.format_repository(&repo_needs_pull);
+        assert!(result.contains("pull_repo"));
+        assert!(result.contains("[develop] [↓]"));
+        assert!(result.contains("Remote: origin/develop"));
+        assert!(result.contains("needs pull"));
+
+        // Test repository that needs both pull and push
+        let repo_needs_both = create_test_repository_with_remote(
+            "sync_repo",
+            true,
+            Some("feature"),
+            2,
+            true,
+            true,
+            Some("origin/feature"),
+        );
+        let result = formatter.format_repository(&repo_needs_both);
+        assert!(result.contains("sync_repo"));
+        assert!(result.contains("[feature] [↑↓]"));
+        assert!(result.contains("Remote: origin/feature"));
+        assert!(result.contains("needs pull and push"));
+    }
+
+    #[test]
+    fn test_format_repository_no_remote() {
+        let formatter = OutputFormatter::new(false, "text".to_string());
+        let repo = create_test_repository("local_repo", false, Some("main"), 0);
+
+        let result = formatter.format_repository(&repo);
+        assert!(result.contains("local_repo"));
+        assert!(result.contains("[main]"));
+        // Should not contain remote sync indicators
+        assert!(!result.contains("[↑]"));
+        assert!(!result.contains("[↓]"));
+        assert!(!result.contains("[↑↓]"));
     }
 }
