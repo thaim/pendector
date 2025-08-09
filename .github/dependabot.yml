@@ -10,5 +10,5 @@ updates:
     labels:
       - "dependencies"
     commit-message:
-      prefix: "cargo"
+      prefix: "chore"
       include: "scope"
