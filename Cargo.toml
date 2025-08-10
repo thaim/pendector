@@ -1,6 +1,6 @@
 [package]
 name = "pendector"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["thaim"]
 description = "Detect and manage pending changes across your local repositories"
 license = "MIT"

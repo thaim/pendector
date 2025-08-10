@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/thaim/pendector/compare/v0.2.1...v0.2.2) (2025-08-10)
+
+
+### Bug Fixes
+
+* dependabot title pr ([#24](https://github.com/thaim/pendector/issues/24)) ([ce61ed2](https://github.com/thaim/pendector/commit/ce61ed2ae6a63ab715f58f4f1eddb74f3dcc3fe1))
+
 ## [0.2.1](https://github.com/thaim/pendector/compare/v0.2.0...v0.2.1) (2025-08-03)
 
 
