@@ -2,6 +2,7 @@ use clap::Parser;
 use pendector::cli::Args;
 use pendector::config::Config;
 use pendector::core::RepoScanner;
+use pendector::notify::slack::SlackNotifier;
 use pendector::output::OutputFormatter;
 use pendector::PendectorError;
 use std::path::Path;
@@ -169,4 +170,46 @@ fn main() {
 
     let formatter = OutputFormatter::new(verbose, format);
     println!("{}", formatter.format_repositories(&filtered_repos));
+
+    // Slack通知
+    if args.notify_slack {
+        let webhook_url = args
+            .slack_webhook_url
+            .or_else(|| config.slack.as_ref().and_then(|s| s.webhook_url.clone()));
+
+        match webhook_url {
+            Some(url) => {
+                let notify_only_changes = if args.slack_notify_always {
+                    false
+                } else {
+                    config
+                        .slack
+                        .as_ref()
+                        .map(|s| s.notify_only_changes)
+                        .unwrap_or(true)
+                };
+
+                let has_any_changes = filtered_repos
+                    .iter()
+                    .any(|r| r.has_changes || r.needs_push || r.needs_pull);
+                if !notify_only_changes || has_any_changes {
+                    let slack_config = config.slack.as_ref();
+                    let notifier = SlackNotifier::new(
+                        url,
+                        slack_config.and_then(|s| s.username.clone()),
+                        slack_config.and_then(|s| s.icon_emoji.clone()),
+                        slack_config.and_then(|s| s.channel.clone()),
+                    );
+
+                    if let Err(e) = notifier.notify(&filtered_repos) {
+                        eprintln!("Warning: {e}");
+                    }
+                }
+            }
+            None => {
+                eprintln!("Error: --notify-slack requires webhook URL (use --slack-webhook-url or config file [slack] section)");
+                std::process::exit(1);
+            }
+        }
+    }
 }

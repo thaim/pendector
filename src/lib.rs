@@ -4,6 +4,7 @@ pub mod core;
 pub mod error;
 pub mod exclude;
 pub mod git;
+pub mod notify;
 pub mod output;
 
 pub use core::*;

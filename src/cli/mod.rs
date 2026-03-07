@@ -49,4 +49,16 @@ pub struct Args {
     /// Ignore exclude patterns from configuration file
     #[arg(long)]
     pub no_exclude: bool,
+
+    /// Send notification to Slack
+    #[arg(long)]
+    pub notify_slack: bool,
+
+    /// Slack webhook URL (overrides config file)
+    #[arg(long)]
+    pub slack_webhook_url: Option<String>,
+
+    /// Send Slack notification even when no changes detected
+    #[arg(long)]
+    pub slack_notify_always: bool,
 }

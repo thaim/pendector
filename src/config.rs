@@ -9,6 +9,9 @@ pub struct Config {
 
     #[serde(default)]
     pub path_configs: Vec<PathConfig>,
+
+    #[serde(default)]
+    pub slack: Option<SlackConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,6 +51,39 @@ pub struct PathConfig {
     pub verbose: Option<bool>,
     pub changes_only: Option<bool>,
     pub exclude_patterns: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SlackConfig {
+    pub webhook_url: Option<String>,
+
+    #[serde(default = "default_true")]
+    pub notify_only_changes: bool,
+
+    #[serde(default)]
+    pub username: Option<String>,
+
+    #[serde(default)]
+    pub icon_emoji: Option<String>,
+
+    #[serde(default)]
+    pub channel: Option<String>,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+impl Default for SlackConfig {
+    fn default() -> Self {
+        Self {
+            webhook_url: None,
+            notify_only_changes: true,
+            username: None,
+            icon_emoji: None,
+            channel: None,
+        }
+    }
 }
 
 impl Default for DefaultConfig {
@@ -299,6 +335,77 @@ fetch = false
         assert!(path_config.verbose);
         assert!(path_config.changes_only);
         assert_eq!(path_config.exclude_patterns, vec!["*.tmp".to_string()]);
+    }
+
+    #[test]
+    fn test_load_config_with_slack() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        let config_content = r##"
+[defaults]
+max_depth = 3
+
+[slack]
+webhook_url = "https://hooks.slack.com/services/T00/B00/XXX"
+notify_only_changes = true
+username = "pendector"
+icon_emoji = ":git:"
+channel = "#alerts"
+"##;
+
+        std::fs::write(&config_path, config_content).unwrap();
+
+        let config = Config::load(Some(&config_path)).unwrap();
+        let slack = config.slack.unwrap();
+        assert_eq!(
+            slack.webhook_url,
+            Some("https://hooks.slack.com/services/T00/B00/XXX".to_string())
+        );
+        assert!(slack.notify_only_changes);
+        assert_eq!(slack.username, Some("pendector".to_string()));
+        assert_eq!(slack.icon_emoji, Some(":git:".to_string()));
+        assert_eq!(slack.channel, Some("#alerts".to_string()));
+    }
+
+    #[test]
+    fn test_load_config_without_slack() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        let config_content = r#"
+[defaults]
+max_depth = 3
+"#;
+
+        std::fs::write(&config_path, config_content).unwrap();
+
+        let config = Config::load(Some(&config_path)).unwrap();
+        assert!(config.slack.is_none());
+    }
+
+    #[test]
+    fn test_load_config_slack_partial() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        let config_content = r#"
+[slack]
+webhook_url = "https://hooks.slack.com/services/T00/B00/XXX"
+"#;
+
+        std::fs::write(&config_path, config_content).unwrap();
+
+        let config = Config::load(Some(&config_path)).unwrap();
+        let slack = config.slack.unwrap();
+        assert_eq!(
+            slack.webhook_url,
+            Some("https://hooks.slack.com/services/T00/B00/XXX".to_string())
+        );
+        assert!(slack.notify_only_changes); // デフォルトtrue
+        assert!(slack.username.is_none());
+        assert!(slack.icon_emoji.is_none());
+        assert!(slack.channel.is_none());
     }
 
     #[test]

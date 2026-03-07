@@ -21,6 +21,7 @@ toml = "0.9"
 dirs = "6.0"
 shellexpand = "3.1"
 ignore = "0.4"
+ureq = "3"
 
 [dev-dependencies]
 assert_cmd = "2.0"
