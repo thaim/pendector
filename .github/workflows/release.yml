@@ -8,26 +8,25 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  issues: write
 
 jobs:
-  release-please:
+  tagpr:
     runs-on: ubuntu-latest
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
+      tag: ${{ steps.tagpr.outputs.tag }}
     steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          release-type: rust
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Songmu/tagpr@v1
+        id: tagpr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
     name: Build Release
     runs-on: ${{ matrix.os }}
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
+    needs: tagpr
+    if: ${{ needs.tagpr.outputs.tag != '' }}
     strategy:
       matrix:
         include:
@@ -41,30 +40,25 @@ jobs:
             asset_name: pendector-macos-aarch64
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.tagpr.outputs.tag }}
 
-    - name: Add build target
-      run: rustup target add ${{ matrix.target }}
+    - run: rustup target add ${{ matrix.target }}
 
-    - name: Setup Rust cache
-      uses: swatinem/rust-cache@v2
+    - uses: swatinem/rust-cache@v2
       with:
         key: ${{ matrix.target }}
 
-    - name: Build release binary
-      run: cargo build --release --target ${{ matrix.target }}
+    - run: cargo build --release --target ${{ matrix.target }}
 
-    - name: Strip binary (Linux/macOS)
-      run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+    - run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
 
-    - name: Rename binary
-      run: mv target/${{ matrix.target }}/release/${{ matrix.artifact_name }} target/${{ matrix.target }}/release/${{ matrix.asset_name }}
+    - run: mv target/${{ matrix.target }}/release/${{ matrix.artifact_name }} target/${{ matrix.target }}/release/${{ matrix.asset_name }}
 
-    - name: Upload binary to release
-      uses: softprops/action-gh-release@v2
+    - uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ needs.release-please.outputs.tag_name }}
+        tag_name: ${{ needs.tagpr.outputs.tag }}
         files: target/${{ matrix.target }}/release/${{ matrix.asset_name }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

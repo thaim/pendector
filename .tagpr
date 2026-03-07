@@ -1,0 +1,5 @@
+[tagpr]
+	releaseBranch = main
+	vPrefix = true
+	versionFile = Cargo.toml
+	command = cargo generate-lockfile
