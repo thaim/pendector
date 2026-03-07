@@ -8,6 +8,7 @@ jobs:
   title-check:
     name: Check PR Title Format
     runs-on: ubuntu-latest
+    if: ${{ !startsWith(github.head_ref, 'tagpr-from-') }}
 
     steps:
       - name: Check PR Title follows Conventional Commits
