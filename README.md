@@ -10,6 +10,7 @@ A CLI tool that scans your local Git repositories and detects forgotten commits,
 - Show remote sync status for each repository, indicating whether a push or pull is needed
 - Customize scan targets, depth, and exclusion patterns via a TOML configuration file
 - Output results as JSON for integration with CI pipelines and scripts
+- Send scan results to Slack via Incoming Webhook
 
 ## Quick Start
 
@@ -78,6 +79,69 @@ fetch = false
 ```
 
 CLI options override config file settings. Run `pendector --help` for all available options.
+
+## Slack Notification
+
+pendector can post scan results to a Slack channel via Incoming Webhook.
+
+### Setup
+
+1. Create a Slack Incoming Webhook by following the [Slack documentation](https://api.slack.com/messaging/webhooks).
+2. Add the webhook URL to your `~/.config/pendector/config.toml`:
+
+```toml
+[slack]
+webhook_url = "https://hooks.slack.com/services/T00/B00/XXX"
+```
+
+### CLI Options
+
+| Flag | Description |
+|------|-------------|
+| `--notify-slack` | Enable Slack notification after scanning |
+| `--slack-webhook-url <URL>` | Specify webhook URL directly (overrides config) |
+| `--slack-notify-always` | Send notification even when no changes are detected |
+
+```bash
+# Notify Slack using URL from config
+$ pendector --notify-slack
+
+# Notify Slack with an explicit webhook URL
+$ pendector --notify-slack --slack-webhook-url https://hooks.slack.com/services/T00/B00/XXX
+
+# Always send notification, even when no pending changes exist
+$ pendector --notify-slack --slack-notify-always
+```
+
+### Cron Example
+
+Use pendector with cron to receive daily Slack alerts about pending changes:
+
+```
+# Check for pending changes every day at 9:00 AM
+0 9 * * * /usr/local/bin/pendector --notify-slack --fetch --changes-only
+```
+
+### Configuration Reference
+
+All Slack settings can be configured under the `[slack]` section in `config.toml`:
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `webhook_url` | string | — | Slack Incoming Webhook URL |
+| `notify_only_changes` | bool | `true` | Only send notification when changes are detected |
+| `username` | string | — | Bot username displayed in Slack |
+| `icon_emoji` | string | — | Bot icon emoji (e.g. `:git:`) |
+| `channel` | string | — | Channel to post to (overrides webhook default) |
+
+```toml
+[slack]
+webhook_url = "https://hooks.slack.com/services/T00/B00/XXX"
+notify_only_changes = true
+username = "pendector"
+icon_emoji = ":git:"
+channel = "#dev-alerts"
+```
 
 ## Installation
 

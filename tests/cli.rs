@@ -173,3 +173,13 @@ fn fetch_timeout_with_specific_directory() {
         .success()
         .stdout(predicate::str::contains("test_repo"));
 }
+
+#[test]
+fn notify_slack_without_webhook_url_fails() {
+    let mut cmd = Command::cargo_bin("pendector").unwrap();
+    cmd.arg("--no-config")
+        .arg("--notify-slack")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("webhook URL"));
+}

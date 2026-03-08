@@ -39,6 +39,8 @@ pub enum PendectorError {
     },
     /// 認証エラー
     AuthenticationError { repo_path: String, message: String },
+    /// Slack通知に失敗
+    SlackNotifyError { message: String },
 }
 
 impl fmt::Display for PendectorError {
@@ -86,6 +88,9 @@ impl fmt::Display for PendectorError {
             }
             PendectorError::AuthenticationError { repo_path, message } => {
                 write!(f, "Authentication error for '{repo_path}': {message}")
+            }
+            PendectorError::SlackNotifyError { message } => {
+                write!(f, "Slack notification error: {message}")
             }
         }
     }
