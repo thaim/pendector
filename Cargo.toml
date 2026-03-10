@@ -24,6 +24,6 @@ ignore = "0.4"
 ureq = "3"
 
 [dev-dependencies]
-assert_cmd = "2.0"
+assert_cmd = "2.1"
 tempfile = "3.8"
 predicates = "3.1"
