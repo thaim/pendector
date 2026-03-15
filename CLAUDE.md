@@ -83,27 +83,6 @@ src/
 8. 出力フォーマット（テキスト or JSON）
 9. Slack通知（`--notify-slack` 指定時、`SlackNotifier`）
 
-## Dependencies
-
-### Runtime
-- **clap** (derive): CLI引数解析
-- **walkdir**: 再帰的ディレクトリ走査
-- **colored**: ターミナルカラー出力
-- **git2**: Git操作（ステータス検出、リモート同期確認）
-- **serde** (derive) + **serde_json**: シリアライズ/JSON出力
-- **rayon**: 並列処理（スキャン・Git操作）
-- **indicatif**: プログレスバー表示
-- **toml**: TOML設定ファイルパース
-- **dirs**: プラットフォーム固有ディレクトリ取得
-- **shellexpand**: シェル変数展開（~, $VAR）
-- **ignore**: gitignore互換パターンマッチング
-- **ureq**: HTTPクライアント（Slack Webhook送信）
-
-### Dev
-- **assert_cmd**: CLIテストフレームワーク
-- **tempfile**: テスト用一時ファイル/ディレクトリ
-- **predicates**: テスト用アサーション述語
-
 ## Testing Strategy
 
 - **Unit tests**: 各モジュール内に `#[cfg(test)]` で配置（config, exclude, repo, scanner, status, formatter）
@@ -114,8 +93,8 @@ src/
 
 ALWAYS run the following after making code changes:
 1. `cargo fmt` - Auto-format code
-2. `cargo test` - Run all tests
-3. `cargo clippy` - Run linter (if available)
+2. `cargo clippy` - Run linter
+3. `cargo test` - Run all tests
 
 These commands must be executed before considering any task complete.
 
