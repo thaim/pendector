@@ -428,4 +428,31 @@ webhook_url = "https://hooks.slack.com/services/T00/B00/XXX"
         assert!(Config::path_matches("/test", "/test/subdir"));
         assert!(!Config::path_matches("/test/path", "/other/path"));
     }
+
+    #[test]
+    fn test_expand_tilde_home_only() {
+        let home = std::env::var("HOME").unwrap();
+        assert_eq!(expand_tilde("~"), home);
+    }
+
+    #[test]
+    fn test_expand_tilde_with_subpath() {
+        let home = std::env::var("HOME").unwrap();
+        assert_eq!(expand_tilde("~/some/path"), format!("{home}/some/path"));
+    }
+
+    #[test]
+    fn test_expand_tilde_absolute_path() {
+        assert_eq!(expand_tilde("/usr/local"), "/usr/local");
+    }
+
+    #[test]
+    fn test_expand_tilde_other_user() {
+        assert_eq!(expand_tilde("~user"), "~user");
+    }
+
+    #[test]
+    fn test_expand_tilde_empty_string() {
+        assert_eq!(expand_tilde(""), "");
+    }
 }
