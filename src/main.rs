@@ -44,8 +44,8 @@ fn main() {
 
     for path in &paths_to_scan {
         // チルダ展開してからパスの存在確認
-        let expanded_path = shellexpand::tilde(path);
-        let path_buf = std::path::Path::new(expanded_path.as_ref());
+        let expanded_path = pendector::config::expand_tilde(path);
+        let path_buf = std::path::Path::new(expanded_path.as_str());
         if !path_buf.exists() {
             eprintln!("Error: Path '{path}' does not exist");
             std::process::exit(1);
@@ -100,7 +100,7 @@ fn main() {
         };
 
         match scanner.scan_with_exclude(
-            expanded_path.as_ref(),
+            expanded_path.as_str(),
             max_depth,
             fetch,
             fetch_timeout,
