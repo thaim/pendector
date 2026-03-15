@@ -2,6 +2,20 @@ use crate::error::{PendectorError, PendectorResult};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+/// チルダ (`~`) をホームディレクトリに展開する
+pub fn expand_tilde(path: &str) -> String {
+    if path == "~" {
+        std::env::var("HOME").unwrap_or_else(|_| "~".to_string())
+    } else if let Some(rest) = path.strip_prefix("~/") {
+        match std::env::var("HOME") {
+            Ok(home) => format!("{home}/{rest}"),
+            Err(_) => path.to_string(),
+        }
+    } else {
+        path.to_string()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]
@@ -190,16 +204,16 @@ impl Config {
     /// パスマッチングロジック
     fn path_matches(config_path: &str, target_path: &str) -> bool {
         // チルダ展開
-        let expanded_config_path = shellexpand::tilde(config_path);
-        let expanded_target_path = shellexpand::tilde(target_path);
+        let expanded_config_path = expand_tilde(config_path);
+        let expanded_target_path = expand_tilde(target_path);
 
         // 正規化
-        let config_canonical = Path::new(expanded_config_path.as_ref())
+        let config_canonical = Path::new(&expanded_config_path)
             .canonicalize()
-            .unwrap_or_else(|_| PathBuf::from(expanded_config_path.as_ref()));
-        let target_canonical = Path::new(expanded_target_path.as_ref())
+            .unwrap_or_else(|_| PathBuf::from(&expanded_config_path));
+        let target_canonical = Path::new(&expanded_target_path)
             .canonicalize()
-            .unwrap_or_else(|_| PathBuf::from(expanded_target_path.as_ref()));
+            .unwrap_or_else(|_| PathBuf::from(&expanded_target_path));
 
         // 完全一致または親ディレクトリかチェック
         target_canonical == config_canonical || target_canonical.starts_with(&config_canonical)
@@ -413,5 +427,32 @@ webhook_url = "https://hooks.slack.com/services/T00/B00/XXX"
         assert!(Config::path_matches("/test/path", "/test/path"));
         assert!(Config::path_matches("/test", "/test/subdir"));
         assert!(!Config::path_matches("/test/path", "/other/path"));
+    }
+
+    #[test]
+    fn test_expand_tilde_home_only() {
+        let home = std::env::var("HOME").unwrap();
+        assert_eq!(expand_tilde("~"), home);
+    }
+
+    #[test]
+    fn test_expand_tilde_with_subpath() {
+        let home = std::env::var("HOME").unwrap();
+        assert_eq!(expand_tilde("~/some/path"), format!("{home}/some/path"));
+    }
+
+    #[test]
+    fn test_expand_tilde_absolute_path() {
+        assert_eq!(expand_tilde("/usr/local"), "/usr/local");
+    }
+
+    #[test]
+    fn test_expand_tilde_other_user() {
+        assert_eq!(expand_tilde("~user"), "~user");
+    }
+
+    #[test]
+    fn test_expand_tilde_empty_string() {
+        assert_eq!(expand_tilde(""), "");
     }
 }

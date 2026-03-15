@@ -19,7 +19,6 @@ rayon = "1.11"
 indicatif = "0.18"
 toml = "1.0"
 dirs = "6.0"
-shellexpand = "3.1"
 ignore = "0.4"
 ureq = "3"
 

@@ -63,9 +63,12 @@ src/
 ├── git/
 │   ├── mod.rs
 │   └── status.rs        # Gitステータス検出・fetch操作（git2クレート）
-└── output/
+├── output/
+│   ├── mod.rs
+│   └── formatter.rs     # テキスト/JSON出力フォーマット（colored出力対応）
+└── notify/
     ├── mod.rs
-    └── formatter.rs     # テキスト/JSON出力フォーマット（colored出力対応）
+    └── slack.rs         # Slack通知（Incoming Webhook経由、ureqクレート）
 ```
 
 ### Main Flow
@@ -78,6 +81,7 @@ src/
 6. リポジトリスキャン（`scanner.scan_with_exclude()`、rayon並列処理）
 7. 結果フィルタ（`--changes-only` で変更ありのみ）
 8. 出力フォーマット（テキスト or JSON）
+9. Slack通知（`--notify-slack` 指定時、`SlackNotifier`）
 
 ## Dependencies
 
@@ -93,6 +97,7 @@ src/
 - **dirs**: プラットフォーム固有ディレクトリ取得
 - **shellexpand**: シェル変数展開（~, $VAR）
 - **ignore**: gitignore互換パターンマッチング
+- **ureq**: HTTPクライアント（Slack Webhook送信）
 
 ### Dev
 - **assert_cmd**: CLIテストフレームワーク
