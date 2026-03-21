@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.3.1](https://github.com/thaim/pendector/compare/v0.3.0...v0.3.1) - 2026-03-21
+- feat: sort output repositories by path alphabetically by @thaim in https://github.com/thaim/pendector/pull/72
+- docs: add systemd timer setup example to README by @thaim in https://github.com/thaim/pendector/pull/74
+- chore: add test coverage measurement and PR comment reporting by @thaim in https://github.com/thaim/pendector/pull/75
+
 ## [v0.3.0](https://github.com/thaim/pendector/compare/v0.2.1...v0.3.0) - 2026-03-15
 - chore: reduce conventional commit type by @thaim in https://github.com/thaim/pendector/pull/20
 - fix: dependabot title pr by @thaim in https://github.com/thaim/pendector/pull/24
