@@ -122,6 +122,41 @@ Use pendector with cron to receive daily Slack alerts about pending changes:
 0 9 * * * /usr/local/bin/pendector --notify-slack --fetch --changes-only
 ```
 
+### Systemd Timer Example
+
+You can also use a systemd user timer instead of cron.
+
+Create `~/.config/systemd/user/pendector.service`:
+
+```ini
+[Unit]
+Description=Scan Git repositories for pending changes
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/pendector --notify-slack --fetch --changes-only
+```
+
+Create `~/.config/systemd/user/pendector.timer`:
+
+```ini
+[Unit]
+Description=Run pendector daily
+
+[Timer]
+OnCalendar=*-*-* 09:00:00
+
+[Install]
+WantedBy=timers.target
+```
+
+Enable and start the timer:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now pendector.timer
+```
+
 ### Configuration Reference
 
 All Slack settings can be configured under the `[slack]` section in `config.toml`:
