@@ -61,4 +61,8 @@ pub struct Args {
     /// Send Slack notification even when no changes detected
     #[arg(long)]
     pub slack_notify_always: bool,
+
+    /// Sort output by key (path)
+    #[arg(long, default_value = "path")]
+    pub sort: String,
 }

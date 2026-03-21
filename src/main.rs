@@ -1,5 +1,18 @@
 use clap::Parser;
 use pendector::cli::Args;
+
+enum SortKey {
+    Path,
+}
+
+impl SortKey {
+    fn from_str(s: &str) -> Self {
+        match s {
+            "path" => Self::Path,
+            _ => Self::Path,
+        }
+    }
+}
 use pendector::config::Config;
 use pendector::core::RepoScanner;
 use pendector::notify::slack::SlackNotifier;
@@ -148,6 +161,15 @@ fn main() {
         all_repositories
     };
 
+    // ソートの実施：フィルタ後・出力前
+    let sort_key = SortKey::from_str(&args.sort);
+    let mut sorted_repos = filtered_repos;
+    match sort_key {
+        SortKey::Path => {
+            sorted_repos.sort_by(|a, b| a.path.cmp(&b.path));
+        }
+    }
+
     // 出力フォーマットの決定：CLI引数 > パス固有設定 > デフォルト設定
     let format = if args.format != "text" {
         args.format.clone()
@@ -169,7 +191,7 @@ fn main() {
     };
 
     let formatter = OutputFormatter::new(verbose, format);
-    println!("{}", formatter.format_repositories(&filtered_repos));
+    println!("{}", formatter.format_repositories(&sorted_repos));
 
     // Slack通知
     if args.notify_slack {
@@ -189,7 +211,7 @@ fn main() {
                         .unwrap_or(true)
                 };
 
-                let has_any_changes = filtered_repos
+                let has_any_changes = sorted_repos
                     .iter()
                     .any(|r| r.has_changes || r.needs_push || r.needs_pull);
                 if !notify_only_changes || has_any_changes {
@@ -201,7 +223,7 @@ fn main() {
                         slack_config.and_then(|s| s.channel.clone()),
                     );
 
-                    if let Err(e) = notifier.notify(&filtered_repos) {
+                    if let Err(e) = notifier.notify(&sorted_repos) {
                         eprintln!("Warning: {e}");
                     }
                 }

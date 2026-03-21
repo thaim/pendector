@@ -175,6 +175,92 @@ fn fetch_timeout_with_specific_directory() {
 }
 
 #[test]
+fn sort_flag_works() {
+    let mut cmd = Command::cargo_bin("pendector").unwrap();
+    cmd.arg("--no-config")
+        .arg("--sort")
+        .arg("path")
+        .assert()
+        .success();
+}
+
+#[test]
+fn sort_output_is_alphabetical() {
+    let temp_dir = TempDir::new().unwrap();
+    let base_path = temp_dir.path();
+
+    // Create mock git repositories in reverse alphabetical order
+    for name in &["zoo_repo", "alpha_repo", "middle_repo"] {
+        let repo_path = base_path.join(name);
+        fs::create_dir_all(&repo_path).unwrap();
+        fs::create_dir_all(repo_path.join(".git")).unwrap();
+    }
+
+    let mut cmd = Command::cargo_bin("pendector").unwrap();
+    let output = cmd
+        .arg("--no-config")
+        .arg(base_path.to_str().unwrap())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let alpha_pos = output_str.find("alpha_repo").unwrap();
+    let middle_pos = output_str.find("middle_repo").unwrap();
+    let zoo_pos = output_str.find("zoo_repo").unwrap();
+
+    assert!(
+        alpha_pos < middle_pos,
+        "alpha_repo should appear before middle_repo"
+    );
+    assert!(
+        middle_pos < zoo_pos,
+        "middle_repo should appear before zoo_repo"
+    );
+}
+
+#[test]
+fn sort_output_json_is_alphabetical() {
+    let temp_dir = TempDir::new().unwrap();
+    let base_path = temp_dir.path();
+
+    // Create mock git repositories in reverse alphabetical order
+    for name in &["zoo_repo", "alpha_repo", "middle_repo"] {
+        let repo_path = base_path.join(name);
+        fs::create_dir_all(&repo_path).unwrap();
+        fs::create_dir_all(repo_path.join(".git")).unwrap();
+    }
+
+    let mut cmd = Command::cargo_bin("pendector").unwrap();
+    let output = cmd
+        .arg("--no-config")
+        .arg(base_path.to_str().unwrap())
+        .arg("--format")
+        .arg("json")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let alpha_pos = output_str.find("alpha_repo").unwrap();
+    let middle_pos = output_str.find("middle_repo").unwrap();
+    let zoo_pos = output_str.find("zoo_repo").unwrap();
+
+    assert!(
+        alpha_pos < middle_pos,
+        "alpha_repo should appear before middle_repo in JSON output"
+    );
+    assert!(
+        middle_pos < zoo_pos,
+        "middle_repo should appear before zoo_repo in JSON output"
+    );
+}
+
+#[test]
 fn notify_slack_without_webhook_url_fails() {
     let mut cmd = Command::cargo_bin("pendector").unwrap();
     cmd.arg("--no-config")
