@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.3.2](https://github.com/thaim/pendector/compare/v0.3.1...v0.3.2) - 2026-06-09
+
+- chore(deps): bump ignore from 0.4.25 to 0.4.26 by @dependabot[bot] in https://github.com/thaim/pendector/pull/86
+- chore(deps): bump clap from 4.6.0 to 4.6.1 by @dependabot[bot] in https://github.com/thaim/pendector/pull/82
+- chore(deps): bump rustls-webpki from 0.103.10 to 0.103.13 by @dependabot[bot] in https://github.com/thaim/pendector/pull/79
+
 ## [v0.3.1](https://github.com/thaim/pendector/compare/v0.3.0...v0.3.1) - 2026-03-21
 - feat: sort output repositories by path alphabetically by @thaim in https://github.com/thaim/pendector/pull/72
 - docs: add systemd timer setup example to README by @thaim in https://github.com/thaim/pendector/pull/74
